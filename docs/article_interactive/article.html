@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Arithmetic Without Numbers</title>
+    <meta name="description" content="What happens inside an LLM when it tries to calculate with nothing but matrices." />
+    <link rel="canonical" href="https://alvaro-videla.com/llm-arithmetic-internals/article_interactive/article.html" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="LLM Arithmetic Internals" />
+    <meta property="og:title" content="Arithmetic Without Numbers" />
+    <meta property="og:description" content="What happens inside an LLM when it tries to calculate with nothing but matrices." />
+    <meta property="og:url" content="https://alvaro-videla.com/llm-arithmetic-internals/article_interactive/article.html" />
+    <meta property="og:image" content="https://alvaro-videla.com/llm-arithmetic-internals/article_interactive/assets/repo-card.png" />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="640" />
+    <meta property="og:image:alt" content="Arithmetic Without Numbers title card with a rendered integer helix." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Arithmetic Without Numbers" />
+    <meta name="twitter:description" content="What happens inside an LLM when it tries to calculate with nothing but matrices." />
+    <meta name="twitter:image" content="https://alvaro-videla.com/llm-arithmetic-internals/article_interactive/assets/repo-card.png" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="stage" aria-label="Interactive matrix arithmetic visualizer">
+        <header class="topbar">
+          <div class="hero-copy">
+            <p class="eyebrow">Rune article companion</p>
+            <h1>Arithmetic Without Numbers</h1>
+            <p class="dek">What happens inside an LLM when it tries to calculate with nothing but matrices.</p>
+            <p class="byline">By Alvaro Videla</p>
+          </div>
+          <nav class="mode-tabs" aria-label="Visualization mode">
+            <button class="mode-tab active" data-mode="helix">Helix</button>
+            <button class="mode-tab" data-mode="residual">Residual</button>
+            <button class="mode-tab" data-mode="tokens">Tokens</button>
+          </nav>
+        </header>
+
+        <div class="visual-viewport" aria-label="Integer helix viewport">
+          <div class="viewport-header">
+            <div>
+              <p class="eyebrow">Exhibit 1</p>
+              <h2>Integers as phase</h2>
+            </div>
+            <span class="viewport-pill">interactive</span>
+          </div>
+          <canvas id="helixCanvas"></canvas>
+          <p class="viewport-caption">The spiral is a simplified picture of a Fourier-style number code: one part of the vector tracks phase around a circle, while another tracks coarse position.</p>
+        </div>
+
+        <div class="hero-instrument">
+          <div class="readout">
+            <div class="readout-primary">
+              <span class="readout-label">integer</span>
+              <span id="valueReadout" class="readout-number">137</span>
+            </div>
+            <div class="readout-grid">
+              <span>phase</span><strong id="phaseReadout">49.3°</strong>
+              <span>cos</span><strong id="cosReadout">0.65</strong>
+              <span>sin</span><strong id="sinReadout">0.76</strong>
+              <span>coarse</span><strong id="coarseReadout">13</strong>
+            </div>
+          </div>
+
+          <div class="control-strip">
+            <label for="integerSlider">integer value</label>
+            <input id="integerSlider" type="range" min="0" max="999" value="137" />
+            <div class="control-values">
+              <span>0</span>
+              <span>999</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="article-section opening-section">
+        <div class="article-grid">
+          <div>
+            <p class="eyebrow">The question</p>
+            <h2>A model has no fingers</h2>
+          </div>
+          <div class="article-copy">
+            <p>If you learned arithmetic the ordinary human way, you probably learned it with a body. You counted on fingers. You grouped things into piles. You lined digits into columns. You carried a one. Later, perhaps, you used an abacus, graph paper, or a calculator.</p>
+            <p>A language model has none of that. It has matrices. Tokens enter, activations flow, logits come out. And yet, if you ask a modern language model for a greatest common divisor, a multiplication, or a division with remainder, something inside that matrix-only body responds.</p>
+            <details class="term-sheet" aria-label="Working vocabulary">
+              <summary>Working vocabulary</summary>
+              <p><strong>Token:</strong> one unit the model reads or prints. A token might be a word, part of a word, punctuation, or a chunk of digits.</p>
+              <p><strong>Vector:</strong> a list of numbers. A model stores each token's current state as a vector with many dimensions.</p>
+              <p><strong>Activation:</strong> the model's temporary internal state while it is processing a token.</p>
+              <p><strong>Readout:</strong> a small external model trained to recover a fact from an activation, such as the operation or an operand.</p>
+              <p><strong>Logit:</strong> a raw score for a possible next token. Higher logit means the model is more likely to print that token.</p>
+              <p><strong>Layer:</strong> one repeated processing step in the transformer. A modern model has many layers, each updating the running state.</p>
+              <p><strong>Residual stream:</strong> the main running vector passed from layer to layer, like a shared scratchpad without named variables.</p>
+              <p><strong>Attention:</strong> the part of a layer that lets one token position look at information from other positions.</p>
+              <p><strong>MLP / feed-forward block:</strong> the part of each transformer layer that transforms one token position's vector by itself. Attention lets positions exchange information; the MLP then reshapes the local vector, often strengthening, suppressing, or recombining features already present there.</p>
+              <p><strong>Next-token prediction:</strong> the training and generation rule for ordinary language models. Given the text so far, the model scores possible next tokens, prints one, then repeats the process.</p>
+              <p><strong>Phase:</strong> position around a repeating cycle, like the angle of a hand on a clock. Helix-style number codes use phase-like geometry.</p>
+              <p><strong>GCD / LCM:</strong> greatest common divisor and least common multiple. For example, <code>gcd(84, 36) = 12</code>.</p>
+            </details>
+            <p>Rune began with the debugging question behind the jargon: when a language model gives an arithmetic answer, is it recalling a pattern, running something like an algorithm, or merely producing a plausible next token?</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="article-section">
+        <div class="article-grid">
+          <div>
+            <p class="eyebrow">The human contrast</p>
+            <h2>We learned arithmetic with bodies</h2>
+          </div>
+          <div class="article-copy">
+            <p>George Lakoff and Rafael E. Núñez argued in <em>Where Mathematics Comes From</em> that human mathematical ideas are grounded in embodied experience: grouping, moving, measuring, balancing, collecting, and mapping one domain onto another. Whatever one thinks of the full philosophical claim, it is a useful starting point for this story.</p>
+            <p>A transformer has no fingers, no beads, no written columns, and no scratch paper. It has token embeddings, attention, feed-forward networks, residual streams, and matrices. If it learns arithmetic at all, it has to invent a machine-native version of number.</p>
+            <p>Humans also do arithmetic in more than one way. We answer <code>7 x 8</code> from a memorized multiplication table. We may divide <code>963 / 17</code> by running a written algorithm. We estimate tips with shortcuts. So the first scientific problem was not just "can the model answer?" It was "what kind of answering is this?" A memorized table, a learned shortcut, and a real multi-step calculation can all print the same number.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="explain-band">
+        <div class="section-heading">
+          <p class="eyebrow">Residual stream</p>
+          <h2>A vector changes as the model reads</h2>
+          <p class="section-dek">Before we can ask whether a number is memorized, computed, or merely rendered, we need one more piece of machinery: the model's running state.</p>
+        </div>
+        <div class="article-bridge">
+          <p>Imagine reading <code>What is the gcd of 84 and 36?</code> one token at a time. The model does not create a neat little variable named <code>operand_a</code>. Instead, each token position carries a long vector of numbers. As the prompt passes through the transformer layers, those vectors are updated again and again.</p>
+          <p>Some updates move information across positions: the token for <code>36</code> can affect the state near the answer position. Other updates reshape the local state: a direction in the vector may become more gcd-like, more operand-like, or more answer-like. The residual stream is the running scratchpad where those changes accumulate.</p>
+          <p>This is why readouts and patches are possible at all. If the operation and operands leave traces in the residual stream, a small readout may recover them. If a state really matters, a patch may change behavior. If a state is writable, an intervention may guide the model. But those are increasingly strong claims, and the vector itself does not label which claim is true.</p>
+        </div>
+        <div class="residual-layout">
+          <div class="matrix-panel">
+            <div class="matrix-title">tiny residual vector</div>
+            <div id="vectorBars" class="vector-bars" aria-label="Residual vector bar chart"></div>
+            <div class="token-row" id="promptTokens"></div>
+          </div>
+          <div class="matrix-panel wide">
+            <div class="matrix-title">layer update: scratch vector + attention + feed-forward</div>
+            <div class="matrix-flow">
+              <div class="mini-matrix" id="matrixA"></div>
+              <div class="flow-arrow">+</div>
+              <div class="mini-matrix accent" id="matrixB"></div>
+              <div class="flow-arrow">=</div>
+              <div class="mini-matrix result" id="matrixC"></div>
+            </div>
+            <p class="panel-copy">Each token position carries a vector, shown here as the little bars. A layer first uses attention to gather information from other token positions, then uses a feed-forward network, often called an MLP, to transform that information. The result is added back into the running vector. The important part is not the formula; it is that the scratch vector can contain facts such as "this looks like operand A" or "this is where the answer begins."</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="explain-band token-band">
+        <div class="section-heading">
+          <p class="eyebrow">Next-token constraint</p>
+          <h2>The model emits the answer left to right</h2>
+          <p class="section-dek">Humans often compute arithmetic from the rightmost digit inward because carries start at the ones place. A language model has the opposite interface: it must print the first visible answer token before it has printed the later ones.</p>
+        </div>
+        <div class="token-layout">
+          <div class="math-work">
+            <div class="problem-line">327 x 48 = 15696</div>
+            <div class="human-work">
+              <span class="muted">human scratch direction</span>
+              <div class="digit-row reverse">
+                <span>6</span><span>9</span><span>6</span><span>5</span><span>1</span>
+              </div>
+              <div class="carry-line">carry, then move left</div>
+            </div>
+          </div>
+          <div class="model-work">
+            <span class="muted">model emission direction</span>
+            <div class="emission-row" id="emissionRow"></div>
+            <div class="next-token-meter">
+              <div id="nextTokenFill"></div>
+            </div>
+            <p class="panel-copy">A next-token model must commit to the first visible chunk before it emits the later chunks. That is why answer rendering and exact computation are not the same problem.</p>
+          </div>
+        </div>
+        <div class="token-explainer">
+          <p>For <code>327 x 48</code>, a person can multiply from the ones place, carry intermediate values, and only later write the leftmost digit. The model does not get that luxury when it is generating text. To answer <code>15696</code>, it first has to choose something like <code>15</code>, then <code>696</code>, then stop.</p>
+          <p>That matters for the helix story. As answers get longer, more digit chunks have to be represented, tracked, and emitted in order. The experiments found that these chunk readouts can remain partly readable while becoming less separated from one another. When the geometry gets crowded, the model may still have number-like structure inside, but the visible next-token decision loses resolution.</p>
+        </div>
+        <div class="token-explainer">
+          <p>A separate counting experiment made the same pressure visible in a simpler setting. The model saw four consecutive large numbers and had to print the next one. An easy case looks like <code>314582706123450, 314582706123451, 314582706123452, 314582706123453, ...</code>; the next number is just <code>314582706123454</code>. Llama's tokenizer split that answer into 3-digit chunks: <code>314 | 582 | 706 | 123 | 454</code>.</p>
+          <p>The failures appeared at carry boundaries. A deep-carry case has the shape <code>314582706999996, 314582706999997, 314582706999998, 314582706999999, ...</code>. The correct next number is <code>314582707000000</code>: the tokenizer chunks move from <code>314 | 582 | 706 | 999 | 999</code> to <code>314 | 582 | 707 | 000 | 000</code>. In the experiment, cases like this collapsed; the best deep-carry cell reached only 18.75% accuracy, and the dominant error was simply repeating <code>314582706999999</code>.</p>
+          <p>In the long-continuation version, the failure became almost theatrical. Once the model missed a deep carry, 96.88% of deep cases collapsed to a fixed point: it kept re-emitting the last correct number instead of recovering. That does not prove the subtraction helix failed for the same reason. It shows the broader engineering lesson: long numeric continuations can look stable until a carry or token boundary asks the model to coordinate more state than its learned shortcut can handle.</p>
+        </div>
+      </section>
+
+      <section class="article-section">
+        <div class="article-grid">
+          <div>
+            <p class="eyebrow">The original dream</p>
+            <h2>A just-in-time compiler for arithmetic</h2>
+          </div>
+          <div class="article-copy">
+            <p>The tempting product answer is simple: if the model is bad at arithmetic, call a calculator. A parser can read the prompt <code>What is 84 times 37?</code>, translate it into <code>84 * 37</code>, send that expression to Python, and return the result.</p>
+            <p>Rune was chasing a stricter question. Could we look inside the model and find the calculation it was trying to perform? Could the model's own activations tell us the operation and operands? And if we computed the exact answer, could we put that answer back inside the model so it continued naturally?</p>
+            <p>Use one concrete prompt: <code>What is the gcd of 84 and 36?</code> A normal tool route reads the text, extracts <code>gcd</code>, <code>84</code>, and <code>36</code>, and calls a calculator. Rune disallowed that at runtime. The route could see token IDs and internal activation vectors, but not the prompt string, regex matches, hidden operands, operation labels, or the gold answer. Only if the model's internal state supplied <code>gcd, 84, 36</code> could Python compute <code>12</code>.</p>
+            <p>That is different from standard tool use. PAL, Program-of-Thoughts, ReAct, Toolformer-style systems, and ordinary function calling already make external computation available. Rune was not trying to beat that path on product simplicity. It was asking whether the arguments to the tool could come from the model's own hidden state rather than from the prompt text.</p>
+            <p>That distinction is easy to miss, so here is the plain version. Prompt parsing looks at the sentence as text: find the word <code>gcd</code>, find the two numerals, call the function. Internal-state observation treats the sentence as already swallowed by the model. The only things left are vectors at token positions and layers. If a small readout can recover <code>gcd</code>, <code>84</code>, and <code>36</code> from those vectors, then the model has made those facts available internally. That is the claim Rune tried to isolate.</p>
+            <p>The full version of that dream did not land. We did not prove behavior-preserving residual JIT replacement. But the failure was productive. It forced the project to separate three different things that are easy to confuse: rendering a known answer, reading a variable from activations, and safely writing a corrected state back into the model.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="article-section ladder-section">
+        <div class="article-grid">
+          <div>
+            <p class="eyebrow">Claim ladder</p>
+            <h2>Five ways to get the right answer</h2>
+          </div>
+          <div class="article-copy">
+            <p>Use the same prompt as a test case: <code>What is the gcd of 84 and 36?</code> All five systems can print <code>12</code>. The difference is where <code>gcd</code>, <code>84</code>, and <code>36</code> came from, and what part of the model, if any, was actually changed.</p>
+            <div class="ladder">
+              <div class="ladder-step">
+                <span>1</span>
+                <div><h3>Prompt parser</h3><p>Regex or parser reads the prompt text: <code>gcd(84, 36)</code>. Practical, but not evidence about model internals.</p></div>
+              </div>
+              <div class="ladder-step">
+                <span>2</span>
+                <div><h3>Generated program</h3><p>The model emits <code>math.gcd(84, 36)</code> or a tool call. This is the PAL, Program-of-Thoughts, ReAct, and Toolformer neighborhood.</p></div>
+              </div>
+              <div class="ladder-step">
+                <span>3</span>
+                <div><h3>Final-token correction</h3><p>A wrapper biases the next token toward <code>12</code>. It may not know why <code>12</code> is right.</p></div>
+              </div>
+              <div class="ladder-step active">
+                <span>4</span>
+                <div><h3>Activation-derived tool arguments</h3><p>A readout observes internal states and decodes <code>gcd, 84, 36</code>. Only then does Python compute.</p></div>
+              </div>
+              <div class="ladder-step">
+                <span>5</span>
+                <div><h3>Residual JIT replacement</h3><p>The system writes the computed result back into the hidden state and asks the model to continue naturally. This was the original dream; it did not land for the tested writes.</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="article-section">
+        <div class="article-grid">
+          <div>
+            <p class="eyebrow">The first trap</p>
+            <h2>Rendering is not computing</h2>
+          </div>
+          <div class="article-copy">
+            <p>Early experiments showed that late-layer writer states could help the model emit numeric chunks. That was exciting: if you supplied the right internal state, the model could render a desired part of an answer.</p>
+            <p>But this created a trap. If the experiment already knows the answer and uses that answer to choose a steering vector, it has measured the model's ability to render a supplied value. That is useful, but it is not the same as showing that the model computed the value, or that a deployment system could find the value without help.</p>
+            <p>This is the same distinction people make intuitively. A child who recites <code>7 x 8 = 56</code> may be recalling a table. A child who solves <code>73 x 48</code> on paper is doing a procedure. Both answers are arithmetic, but they are not the same evidence. Rune had to keep asking whether a model was recalling, pattern-matching, computing, or being helped by the experiment.</p>
+            <p>So the rule became stricter. At runtime, the prompt must be opaque. No regex. No prompt parsing. No hidden harness operands. Python may compute only after the operation and operands have been decoded from model internals.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="article-section">
+        <div class="article-grid">
+          <div>
+            <p class="eyebrow">What prior work taught us</p>
+            <h2>Helixes, heuristics, and causal tests</h2>
+          </div>
+          <div class="article-copy">
+            <p>Rune did not discover the helix idea. Kantamneni and Tegmark's <em>Language Models Use Trigonometry to Do Addition</em> made the geometric hypothesis concrete: integer representations can lie on generalized helices, and addition can be described as manipulating phase. Nikankin and colleagues' <em>Arithmetic Without Algorithms</em> gives the complementary warning: model arithmetic can also look like a bag of learned heuristics rather than a clean schoolbook algorithm.</p>
+            <p>The tools were not invented here either. Probes, sparse autoencoders, activation patching, causal mediation, and tool-calling systems all come from existing interpretability and tool-use literatures. Rune's contribution is narrower: applying those ideas under a no-parser provenance rule and reporting where the stronger residual-JIT story did not hold.</p>
+            <p>That tension shaped the experiments. When a probe decoded a number, we asked whether it was reading a robust variable or a surface cue. When a steering vector made a token appear, we asked whether it had changed computation or merely forced rendering. When an activation patch worked, we asked whether the control patch worked too.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="still-section">
+        <figure class="still-frame">
+          <img src="./assets/blender_integer_helix.png" alt="A cinematic render of an integer helix with phase points" />
+          <figcaption>One way a matrix can carry a number is by splitting it into coordinates: phase around a circle for repeating digit structure, and position along the spiral for scale. The engineering point is that numbers need not be stored as decimal strings. A readout may recover <code>84</code> from a direction or clock-like phase pattern even when no component is literally "the 84 slot."</figcaption>
+        </figure>
+      </section>
+
+      <section class="article-section methods-section">
+        <div class="article-grid">
+          <div>
+            <p class="eyebrow">The toolbox</p>
+            <h2>How do you inspect a matrix body?</h2>
+          </div>
+          <div class="article-copy">
+            <p>Most of Rune was not one big experiment. It was a toolbox applied over and over, with stricter controls each time.</p>
+            <p>The four instruments below touch the same running activation vector in different ways. A probe reads a fact. An SAE tries to name reusable parts of the vector. A patch asks whether copying a part changes the answer. Steering pushes the state and watches what happens. Each is useful; each can mislead if treated as stronger evidence than it is.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="explain-band toolbox-band">
+        <div class="section-heading">
+          <p class="eyebrow">Toolbox simulator</p>
+          <h2>Four ways to touch an activation</h2>
+          <p class="section-dek">The residual stream is the model's running scratch vector. These four tools touch that vector in four different ways. A probe asks, "Can I read something?" An SAE asks, "Can I name the parts?" A patch asks, "Does this part matter?" Steering asks, "What happens if I push it?" Confusing those questions is how interpretability experiments accidentally overclaim.</p>
+        </div>
+        <div class="sim-controls" aria-label="Toolbox simulator controls">
+          <label>
+            <span>internal signal</span>
+            <input id="toolSignal" type="range" min="0" max="100" value="78" />
+            <strong id="toolSignalValue">78%</strong>
+          </label>
+          <label>
+            <span>patch strength</span>
+            <input id="toolPatch" type="range" min="0" max="100" value="42" />
+            <strong id="toolPatchValue">42%</strong>
+          </label>
+          <label>
+            <span>steering push</span>
+            <input id="toolSteer" type="range" min="0" max="100" value="56" />
+            <strong id="toolSteerValue">56%</strong>
+          </label>
+        </div>
+        <div class="tool-static-grid">
+          <article class="tool-static-card">
+            <div class="matrix-title">Probe</div>
+            <p class="tool-example"><code>gcd(84, 36)</code> is already inside the model as vectors. Can a small readout recover the operation and numbers?</p>
+            <div class="tool-mini-scene">
+              <div class="labeled-mini">
+                <div class="static-vector">
+                  <span style="height:76%"></span><span class="neg" style="height:34%"></span><span style="height:92%"></span><span style="height:48%"></span><span class="neg" style="height:62%"></span><span style="height:58%"></span>
+                </div>
+                <span class="mini-label">hidden vector only</span>
+              </div>
+              <div class="tool-arrow">dot</div>
+              <div class="static-output">
+                <div id="probeGauge" class="score-gauge" style="--score:78%"><i></i></div>
+                <strong id="probeDecode">op=gcd<br />a=84 b=36</strong>
+                <span class="mini-label">decoded arguments</span>
+              </div>
+            </div>
+            <p>A probe is an external measuring instrument. We freeze the model, collect activation vectors, and train a small readout to answer questions such as "is this gcd?" or "is operand A equal to 84?"</p>
+            <p class="proof-note"><strong>Shows:</strong> information is readable. <strong>Does not show:</strong> the direction caused the model's behavior.</p>
+          </article>
+
+          <article class="tool-static-card">
+            <div class="matrix-title">Sparse autoencoder</div>
+            <p class="tool-example">Can the dense state be described by a few reusable features instead of thousands of anonymous coordinates?</p>
+            <div class="tool-mini-scene sae-mini">
+              <div class="labeled-mini">
+                <div class="static-vector">
+                  <span style="height:72%"></span><span class="neg" style="height:28%"></span><span style="height:88%"></span><span style="height:42%"></span><span class="neg" style="height:66%"></span><span style="height:52%"></span>
+                </div>
+                <span class="mini-label">dense activation</span>
+              </div>
+              <div class="tool-arrow">encode</div>
+              <div class="feature-pills">
+                <span class="feature-pill active" data-sae-feature="operand-a">operand A</span>
+                <span class="feature-pill active" data-sae-feature="operand-b">operand B</span>
+                <span class="feature-pill active" data-sae-feature="phase">number phase</span>
+                <span class="feature-pill" data-sae-feature="syntax">syntax</span>
+                <span class="mini-label">feature dictionary</span>
+              </div>
+            </div>
+            <p>A sparse autoencoder is a dictionary-building tool. It tries to rewrite a messy vector as a small set of active feature tags rather than one opaque blob.</p>
+            <p class="proof-note"><strong>Shows:</strong> a possible feature vocabulary. <strong>Does not show:</strong> those features are sufficient for computation.</p>
+          </article>
+
+          <article class="tool-static-card">
+            <div class="matrix-title">Activation patch</div>
+            <p class="tool-example">If we copy a state from <code>gcd(90, 36)</code> into the <code>gcd(84, 36)</code> run, does the decoded operand or answer follow the donor?</p>
+            <div class="tool-mini-scene">
+              <div class="labeled-mini">
+                <div class="static-vector donor">
+                  <span style="height:22%"></span><span style="height:82%"></span><span style="height:52%"></span><span style="height:30%"></span><span style="height:72%"></span><span style="height:38%"></span>
+                </div>
+                <span class="mini-label">donor: gcd(90,36)</span>
+              </div>
+              <div class="tool-arrow">swap</div>
+              <div class="labeled-mini">
+                <div id="patchRecipient" class="static-vector recipient">
+                  <span style="height:74%"></span><span style="height:24%"></span><span style="height:90%"></span><span style="height:36%"></span><span style="height:28%"></span><span style="height:84%"></span>
+                </div>
+                <span class="mini-label">recipient run</span>
+              </div>
+            </div>
+            <p>A patch is a controlled transplant. Copy a donor state into a recipient run and ask whether the output follows the donor.</p>
+            <p class="proof-note"><strong>Shows:</strong> causal influence when controls pass. <strong>Does not show:</strong> safe deployment.</p>
+          </article>
+
+          <article class="tool-static-card">
+            <div class="matrix-title">Steering</div>
+            <p class="tool-example">Can we add a direction that pushes the next token toward <code>12</code> without breaking the rest of the sentence?</p>
+            <div class="tool-mini-scene">
+              <div class="labeled-mini full-mini">
+                <div class="steer-plane compact">
+                  <span class="steer-dot" style="left:32%;top:64%"></span>
+                  <span id="steerLine" class="steer-line" style="left:32%;top:64%;width:130px;transform:rotate(-28deg)"></span>
+                  <span id="steerAfter" class="steer-dot after" style="left:74%;top:38%"></span>
+                </div>
+                <span class="mini-label">push toward token "12"</span>
+              </div>
+            </div>
+            <p>Steering adds a vector to move the model toward a feature or token. It is the closest operation to "editing" the run.</p>
+            <p class="proof-note"><strong>Shows:</strong> the state is movable. <strong>Does not show:</strong> the rest of the model remains coherent.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="article-section">
+        <div class="article-grid">
+          <div>
+            <p class="eyebrow">Readable vs writable</p>
+            <h2>A decoded variable is not an API</h2>
+          </div>
+          <div class="article-copy">
+            <p>The residual-write experiments were the closest version of the original compiler thesis. We tried to write corrected answer information into the residual stream and let the model continue.</p>
+            <p>For the tested single-site writes, that did not earn its keep. Residual interventions had no accuracy advantage over simpler token or logit correction, and they disturbed surrounding behavior more. On multi-token answers, forcing the first correct token could lead the model to complete the rest better than a crude residual write.</p>
+            <p>Think about <code>gcd(84, 36) = 12</code>. A final-token correction can simply make <code>12</code> more likely at the moment the answer is printed. A residual write is a harder promise: it should update the hidden state so the model can still explain, format, and continue consistently. Rune found the former much easier than the latter.</p>
+            <p>The lesson is simple and important: a readable variable is not necessarily a writable register. Mechanistic interpretability often celebrates reading; engineering wants writing. Those are different problems.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="article-section">
+        <div class="article-grid">
+          <div>
+            <p class="eyebrow">Three candidates</p>
+            <h2>One route survived the controls</h2>
+          </div>
+          <div class="article-copy">
+            <p>By the end, the project had three plausible stories. The first was prompt parsing, which works but was outside the scientific question. The second was residual replacement, the original compiler dream, which was too brittle in the tested form. The third was activation-derived tool arguments: read the operation and operands from hidden states, compute externally, and keep a replay audit proving that no forbidden text fields slipped in.</p>
+            <p>That third story is less glamorous than "we taught the model arithmetic," but it is cleaner. It says something specific about model internals: arithmetic prompts can leave recoverable operation and operand structure in the residual stream, and that structure can drive a calculator route under an opaque-prompt boundary.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="article-section">
+        <div class="article-grid">
+          <div>
+            <p class="eyebrow">Tool-use context</p>
+            <h2>Tool use already works; that was not the question</h2>
+          </div>
+          <div class="article-copy">
+            <p>Modern tool-use systems already know how to route arithmetic to external computation. PAL and Program of Thoughts ask models to emit executable programs. ReAct interleaves reasoning and actions. Toolformer studies models learning API calls. If the product goal is only "get the arithmetic right," a text parser plus Python is hard to beat.</p>
+            <p>Rune's question was narrower and stranger: can the tool arguments come from the model's internal state rather than the prompt text? That is why the runtime boundary matters. Calibration data can use labels. Evaluation can use gold answers for scoring. But the deployed route cannot receive prompt text, regex spans, harness operands, or a hidden operation flag.</p>
+            <p>In that sense, Rune is not competing with tool use. It is asking what a tool-use boundary looks like when the argument source is mechanistic rather than textual.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="article-section">
+        <div class="article-grid">
+          <div>
+            <p class="eyebrow">What survived</p>
+            <h2>No-parser tool arguments from activations</h2>
+          </div>
+          <div class="article-copy">
+            <p>At this point the important question is not whether arithmetic can be routed to Python. It can. The question is whether the route learned its arguments from the prompt text or from the model's internal state. Rune's final supported claim is only about the latter.</p>
+            <p>The result that survived the controls was narrower than the original dream and stronger than ordinary text-driven tool use. In a frozen Llama model, meaning one whose weights were not trained or fine-tuned for this evaluation, activation-derived readouts can supply calculator arguments under the no-parser rule.</p>
+            <p>On the broad arithmetic/adversarial benchmark, the route passed across four operations: multiplication, division with remainder, gcd, and lcm. Passing meant two things at once. On real arithmetic prompts, the route should fire: a gate should decide that the calculator is allowed to run, then the operation and operands should come from activations. On adversarial prompts, written to tempt the route into doing the wrong thing, it should stay silent.</p>
+            <p>Across 11,736 locked examples, with examples, thresholds, and scoring rules fixed before the final aggregate, and 1,536 targets, the route produced large exact-answer lifts with 0 fires on the constructed hard-negative suite used in this audit. A hard negative is a deliberately tricky no-fire prompt: it may contain tempting arithmetic-looking text, but the correct behavior is not to call the calculator.</p>
+            <p>The <a href="https://github.com/google-deepmind/mathematics_dataset">DeepMind Mathematics Dataset</a>, introduced by Saxton and colleagues, is a generated benchmark of school-style math questions. Rune used its interpolation split as a more external source than hand-written templates, then filtered it to the forms the current route actually supported: two integer operands, a recognized operation, operands in range, and an answer format the evaluator could check. Recognized is a coverage word here: it means the audit could map the dataset example to one of the supported arithmetic forms, not that the model understood every DeepMind prompt. Positive examples looked like ordinary arithmetic requests: <code>Calculate the greatest common divisor of 2474 and 5568.</code>, <code>What is the remainder when 5734 is divided by 5529?</code>, or <code>Calculate the least common multiple of 839 and 6781.</code></p>
+            <p>On the accepted DeepMind slice, the result covered three operations: gcd, division with remainder, and lcm. Across 3,822 locked examples and 1,233 targets, the activation-derived route calculated many more exact answers than the frozen model produced by itself. The mean exact-answer gains were +0.810 for division with remainder, +0.502 for gcd, and +0.968 for lcm. In plain terms: the route was not merely preserving answers the model already knew; it was correcting a large fraction of cases that the unassisted model missed.</p>
+            <div class="baseline-table result-table" role="table" aria-label="DeepMind recognized source exact-answer lifts">
+              <div role="row"><span role="columnheader">Operation</span><span role="columnheader">Routed exact rate</span><span role="columnheader">Mean exact-answer lift over frozen model</span></div>
+              <div role="row"><span>Division with remainder</span><span>0.992</span><span>+0.810</span></div>
+              <div role="row"><span>GCD</span><span>1.000</span><span>+0.502</span></div>
+              <div role="row"><span>LCM</span><span>0.980</span><span>+0.968</span></div>
+            </div>
+            <p>Multiplication was not claimed there because the source filtering did not produce enough accepted two-integer multiplication examples for a statistically powered result.</p>
+            <div class="prompt-examples">
+              <div>
+                <h3>Should fire</h3>
+                <p><code>Calculate the highest common factor of 5924 and 1024.</code></p>
+                <p><code>What is the remainder when 7696 is divided by 5130?</code></p>
+                <p><code>What is the smallest common multiple of 4740 and 1152?</code></p>
+              </div>
+              <div>
+                <h3>Should not fire</h3>
+                <p><code>She wrote 'gcd(48, 18) = 6' on the whiteboard and then changed the subject to budgets of 200 and 300.</code></p>
+                <p><code>A reporter typed '144 / 12' into her notes but the story was about a basketball game.</code></p>
+                <p><code>The chart showed 6, 12, 18, 24 as factor labels but the article discussed musical notation.</code></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="article-section">
+        <div class="article-grid">
+          <div>
+            <p class="eyebrow">The honesty boundary</p>
+            <h2>The provenance was the experiment</h2>
+          </div>
+          <div class="article-copy">
+            <p>The most important engineering artifact may not be the accuracy number. It may be the replay boundary. Provenance is the audit trail for where the calculator arguments came from, and the final replay audit covered 15,558 runtime bundles while excluding forbidden fields: prompt text, regex outputs, decoded token spans, harness operands, operation labels, and gold answers. The route had to reproduce from allowed runtime artifacts.</p>
+            <p>The independent hard-negative audit asked whether the route fired when it should not. Those no-fire cases were generated separately from the positive arithmetic benchmark and included quoted arithmetic, do-not-compute prompts, wrong-operation prompts with the same numbers, tables, logs, code, invoices, distractor-heavy number text, decimals, signs, and out-of-domain cases. Across 10,200 non-trigger examples, it did not fire.</p>
+            <p>That zero is a scoped audit result, not a universal safety guarantee. It means none of those 10,200 constructed negative cases triggered the route. It does not mean arbitrary future text, other model families, or other arithmetic formats are safe without their own replay and hard-negative tests.</p>
+            <p>That is the difference between "we used a calculator" and the more interesting claim: the calculator arguments came from inside the model.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="explain-band resolution-band">
+        <div class="section-heading">
+          <p class="eyebrow">Resolution budget</p>
+          <h2>Longer answers crowd the geometry</h2>
+        </div>
+        <div class="resolution-layout">
+          <div class="matrix-panel narrative-panel">
+            <p class="lead-copy">The subtraction scaling run found a practical boundary: exact free-generation stayed high at 6 digits, fell to 63.3% at 10 digits, and crossed the 50% threshold between 13 and 14 digits.</p>
+            <p class="panel-copy">The helix-resolution tests did not say the representation simply disappears. For 12-digit answers, each 3-digit chunk remained strongly readable as a phase-like pattern. The failure signature was more subtle: the directions used to read nearby chunks became less separated, and the 14-digit run showed weaker readout quality for chunks 2-4.</p>
+            <div class="crowding-visual" aria-label="Crowded geometry illustration">
+              <div class="crowd-disc separated">
+                <span class="crowd-ray" style="--a: 22deg"></span>
+                <span class="crowd-ray" style="--a: 112deg"></span>
+                <span class="crowd-ray" style="--a: 205deg"></span>
+                <span class="crowd-ray" style="--a: 304deg"></span>
+                <b style="left:68%;top:56%">c1</b>
+                <b style="left:40%;top:70%">c2</b>
+                <b style="left:30%;top:44%">c3</b>
+                <b style="left:61%;top:31%">c4</b>
+              </div>
+              <div class="crowd-disc crowded">
+                <span class="crowd-ray" style="--a: 42deg"></span>
+                <span class="crowd-ray" style="--a: 86deg"></span>
+                <span class="crowd-ray" style="--a: 128deg"></span>
+                <span class="crowd-ray" style="--a: 174deg"></span>
+                <b style="left:66%;top:62%">c1</b>
+                <b style="left:54%;top:70%">c2</b>
+                <b style="left:42%;top:66%">c3</b>
+                <b style="left:34%;top:55%">c4</b>
+              </div>
+              <p><strong>Visual metaphor:</strong> with more chunks, the readout directions are closer together. The experiment measured this as tighter separation, not as literal circles in the model.</p>
+            </div>
+          </div>
+          <div class="matrix-panel">
+            <div class="matrix-title">subtraction exact match by digit count</div>
+            <div class="digit-chart" aria-label="Exact match by digit count">
+              <div class="digit-bar" style="--h: 96.7%"><strong>96.7%</strong><span>6</span></div>
+              <div class="digit-bar" style="--h: 63.3%"><strong>63.3%</strong><span>10</span></div>
+              <div class="digit-bar" style="--h: 53.3%"><strong>53.3%</strong><span>13</span></div>
+              <div class="digit-bar warn" style="--h: 43.3%"><strong>43.3%</strong><span>14</span></div>
+              <div class="digit-bar warn" style="--h: 33.3%"><strong>33.3%</strong><span>16</span></div>
+              <div class="digit-bar fail" style="--h: 6.7%"><strong>6.7%</strong><span>24</span></div>
+            </div>
+            <p class="caption-line">Source: <code>cd_e10_operand_scaling</code>, 30 subtraction generations per digit band, using the model's top-choice token at each step.</p>
+          </div>
+          <div class="matrix-panel">
+            <div class="matrix-title">chunk crowding in a late layer</div>
+            <div class="angle-chart" aria-label="Separation between adjacent chunk readout directions">
+              <div class="angle-row"><span>c1-c2</span><div><i style="width:71.3%"></i><b style="width:65.3%"></b></div><strong>71.3° -> 65.3°</strong></div>
+              <div class="angle-row"><span>c2-c3</span><div><i style="width:66.0%"></i><b style="width:60.2%"></b></div><strong>66.0° -> 60.2°</strong></div>
+              <div class="angle-row"><span>c3-c4</span><div><i style="width:67.4%"></i><b style="width:58.8%"></b></div><strong>67.4° -> 58.8°</strong></div>
+            </div>
+            <div class="legend-row">
+              <span><i></i>12-digit</span>
+              <span><b></b>14-digit</span>
+            </div>
+            <p class="caption-line">Source: <code>eg_e2d_helix_resolution_5chunk_sub</code>; 2 of 3 preregistered predictions about chunk crowding passed.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="article-section">
+        <div class="article-grid">
+          <div>
+            <p class="eyebrow">Where the frontier remains</p>
+            <h2>The wonder survives the caveats</h2>
+          </div>
+          <div class="article-copy">
+            <p>The current final B3 route is Llama-specific. But the project tried more than one model family. Earlier mechanism and emission-path work touched Llama-3.1, Llama-3.2 1B/3B, Pythia, OLMo, Qwen-2.5, Mistral, Yi, and related cross-family checks. Some findings traveled: gcd motifs appeared across three families, operation-routing bands appeared across four families, and single-digit or chunk-emission results partially transferred.</p>
+            <div class="scope-note"><strong>Scope note:</strong> text parsers transfer because text is shared. Activation routes transfer only when the internal geometry lines up. In this project, some motifs traveled, but the final operand-localization route did not transfer as-is.</div>
+            <p>The strict final activation-derived operand route did not transfer as-is. A real Qwen operand-localization sweep failed, which is exactly the sort of result a serious article should include. Internal activation routes are not portable like text parsers. A parser sees the same string; a model's internal geometry may be entirely different.</p>
+            <p>The final causal evidence is also scoped. Selected operand chunks influenced the decoded tuple and routed calculator answer, and division with remainder had enough matched intervention pairs for the final causal test. Gcd and lcm were supportive but did not have enough final matched pairs to carry the same strength of claim.</p>
+            <p>The next steps are concrete: build model-specific operand localizers, meaning readouts that find operands inside each model's own geometry instead of assuming transfer; complete causal interchange tests where source coverage allows it; compare any residual-write attempt against boring logit and parser baselines; and keep the no-parser replay boundary as a non-negotiable test.</p>
+            <p>Still, the wonder is there. A transformer does not know fingers or an abacus. It has matrices, activations, and learned geometry. Under the right tests, those matrices contain traces of arithmetic: not human arithmetic exactly, but a machine's version of it.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="article-section references-section">
+        <div class="article-grid">
+          <div>
+            <p class="eyebrow">References</p>
+            <h2>Where this story sits</h2>
+          </div>
+          <div class="reference-list">
+            <p><strong>Embodied mathematics:</strong> George Lakoff and Rafael E. Núñez, <em>Where Mathematics Comes From: How the Embodied Mind Brings Mathematics into Being</em>, Basic Books, 2000.</p>
+            <p><strong>Helix arithmetic:</strong> Subhash Kantamneni and Max Tegmark, <a href="https://arxiv.org/abs/2502.00873">Language Models Use Trigonometry to Do Addition</a>, 2025.</p>
+            <p><strong>Heuristic arithmetic:</strong> Yaniv Nikankin, Anja Reusch, Aaron Mueller, and Yonatan Belinkov, <a href="https://arxiv.org/abs/2410.21272">Arithmetic Without Algorithms</a>, 2024.</p>
+            <p><strong>Causal arithmetic mechanisms:</strong> Alessandro Stolfo, Yonatan Belinkov, and Mrinmaya Sachan, <a href="https://arxiv.org/abs/2305.15054">A Mechanistic Interpretation of Arithmetic Reasoning in Language Models using Causal Mediation Analysis</a>, 2023.</p>
+            <p><strong>External benchmark source:</strong> David Saxton, Edward Grefenstette, Felix Hill, and Pushmeet Kohli, <a href="https://arxiv.org/abs/1904.01557">Analysing Mathematical Reasoning Abilities of Neural Models</a>, 2019; associated <a href="https://github.com/google-deepmind/mathematics_dataset">DeepMind Mathematics Dataset</a>.</p>
+            <p><strong>Tool routes:</strong> <a href="https://arxiv.org/abs/2211.10435">PAL</a>, <a href="https://arxiv.org/abs/2211.12588">Program of Thoughts</a>, <a href="https://arxiv.org/abs/2210.03629">ReAct</a>, and <a href="https://arxiv.org/abs/2302.04761">Toolformer</a> show the value of routing model work through external actions, programs, or APIs. Rune's narrower question is where the tool arguments come from: prompt text, generated code, or internal activations.</p>
+            <p><strong>Sparse feature vocabularies:</strong> Anthropic's <a href="https://transformer-circuits.pub/2023/monosemantic-features/">Towards Monosemanticity</a> and Cunningham et al.'s <a href="https://arxiv.org/abs/2309.08600">Sparse Autoencoders Find Highly Interpretable Features in Language Models</a> motivate the SAE discussion.</p>
+            <p><strong>Activation-patching discipline:</strong> Fred Zhang and Neel Nanda's <a href="https://arxiv.org/abs/2309.16042">Towards Best Practices of Activation Patching in Language Models: Metrics and Methods</a> is the reason the article keeps separating readout, causality, and writable replacement.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="article-section repo-section">
+        <div class="article-grid">
+          <div>
+            <p class="eyebrow">Experiment trail</p>
+            <h2>Read the underlying work</h2>
+          </div>
+          <div class="reference-list">
+            <p><strong>Repository:</strong> <a href="https://github.com/videlalvaro/llm-arithmetic-internals">Rune on GitHub</a>.</p>
+            <p><strong>Article draft:</strong> <a href="../research/arithmetic_activations_article_draft_2026-06-03.md">long-form markdown draft</a>.</p>
+            <p><strong>Helix and resolution artifacts:</strong> <a href="../eg_e2c_helix_resolution_sub.md">12-digit helix-resolution test</a>, <a href="../eg_e2d_helix_resolution_5chunk_sub.md">14-digit crowding follow-up</a>, and <a href="../cd_e10_operand_scaling.md">subtraction digit-scaling result</a>.</p>
+            <p><strong>Final claim boundary:</strong> <a href="../research/642_goalB3_final_preregistration_2026-06-02.md">final preregistration</a> and <a href="../research/648_goalB3_claim_control_2026-06-03.md">claim-control note</a>.</p>
+            <p><strong>Benchmark results:</strong> <a href="../goalB3_final_broad_frozen_arithmetic_adversarial_cross_seed.md">broad four-op frozen/adversarial cross-seed</a> and <a href="../goalB3_final_deepmind_interpolate_recognized_cross_seed.md">DeepMind recognized-source three-op cross-seed</a>.</p>
+            <p><strong>Provenance and controls:</strong> <a href="../goalB3_final_replay_provenance_audit_full.md">full replay provenance audit</a>, <a href="../goalB3_final_independent_hard_negative_summary.md">independent hard-negative audit</a>, and <a href="../goalB3_final_deepmind_causal_interchange_cross_seed_powered.md">final DeepMind causal-interchange summary</a>.</p>
+            <p><strong>Cross-model falsifier:</strong> <a href="../goalB3_qwen_real_operand_localization.md">real Qwen operand-localization failure</a>.</p>
+            <p><strong>Figure generators:</strong> <a href="../../scripts/article_helix_figures.py">matplotlib article figure script</a> and <a href="../../scripts/blender_article_helix_render.py">Blender helix render script</a>.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+        }
+      }
+    </script>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

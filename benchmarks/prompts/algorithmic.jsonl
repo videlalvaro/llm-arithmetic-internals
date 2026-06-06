@@ -1,0 +1,4 @@
+{"id":"alg-modadd-7-01","family":"algorithmic","task":"modadd","input":"3 + 5 mod 7 =","expected":"1","metadata":{"modulus":7,"a":3,"b":5},"tags":["arithmetic","synthetic"]}
+{"id":"alg-date-01","family":"algorithmic","task":"date_arithmetic","input":"If today is Tuesday, what day is it 9 days from now?","expected":"Thursday","metadata":{"start":"Tuesday","offset_days":9},"tags":["cyclic","natural_text"]}
+{"id":"alg-bracket-01","family":"algorithmic","task":"bracket_matching","input":"(()())","expected":"balanced","metadata":{"alphabet":"paren"},"tags":["regular_language"]}
+{"id":"alg-copy-01","family":"algorithmic","task":"copy_induction","input":"A q B r A","expected":"q","metadata":{"key":"A","value":"q"},"tags":["copy","induction"]}

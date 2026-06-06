@@ -1,0 +1,153 @@
+{
+  "suite": "goalB3_final_frozen_manifest",
+  "date": "2026-06-02",
+  "status": "prospective_final_rerun_preregistered",
+  "claim": "Activation-derived tool use improves exact arithmetic benchmark accuracy under a no-parser runtime; causal evidence is supportive for selected operand-state readout but final DeepMind gcd/lcm causal validation is underpowered until the frozen pair-count gate is met.",
+  "claim_control_note": "docs/research/648_goalB3_claim_control_2026-06-03.md",
+  "runtime_contract": {
+    "prompt_runtime": "opaque_token_ids_plus_captured_activations",
+    "op_source": "activation",
+    "operand_source": "activation",
+    "answer_source": "python_from_decoded_tuple",
+    "forbidden_runtime_inputs": [
+      "prompt_text",
+      "regex_matches",
+      "tokenizer_decoded_operand_spans",
+      "cli_operation",
+      "harness_operands",
+      "gold_answers"
+    ]
+  },
+  "model": {
+    "primary": "unsloth/Meta-Llama-3.1-8B",
+    "strict_transfer_attempt": "Qwen/Qwen2.5-7B"
+  },
+  "frozen_thresholds": {
+    "op_threshold_min": 0.65,
+    "op_neg_margin": 0.05,
+    "safe_threshold_min": 0.65,
+    "safe_neg_margin": 0.05,
+    "pair_conf_thresholds": {
+      "mul": 0.05,
+      "div_remainder": 0.2,
+      "lcm": 0.2,
+      "gcd": 0.2
+    },
+    "chunk_top_k": 12,
+    "chunk_window": 1,
+    "chunk_pos_threshold": 0.5,
+    "chunk_value_margin_threshold": 0.0,
+    "operand_lo": 0,
+    "operand_hi": 9999,
+    "max_new_tokens": 12
+  },
+  "acceptance_gates": {
+    "min_locked_examples": 1000,
+    "min_ops": 3,
+    "min_lift": 0.2,
+    "max_false_fire": 0.01,
+    "min_pair_exact_fired": 0.8,
+    "min_seeds": 3,
+    "min_causal_pairs_per_op": 50,
+    "min_causal_follow": 1.0,
+    "max_random_routed_follow": 0.1
+  },
+  "benchmark_tiers": {
+    "broad_frozen_arithmetic_adversarial": {
+      "runner": "scripts/goalB3_repaired_benchmark_suite.py",
+      "ops": [
+        "mul",
+        "div_remainder",
+        "lcm",
+        "gcd"
+      ],
+      "seeds": [
+        801,
+        811,
+        821
+      ],
+      "split_source": "broad_frozen_arithmetic_adversarial",
+      "n_per_family": 80,
+      "n_adversarial_per_family": 250,
+      "fit_b3_aug_n_per_family": 20
+    },
+    "deepmind_interpolate_recognized": {
+      "runner": "scripts/goalB3_repaired_benchmark_suite.py",
+      "ops": [
+        "gcd",
+        "div_remainder",
+        "lcm"
+      ],
+      "seeds": [
+        911,
+        921,
+        931
+      ],
+      "split_source": "deepmind_interpolate",
+      "n_per_family": 500,
+      "n_natural": 200,
+      "dm_scan_limit": 200000,
+      "fit_b3_aug_n_per_family": 20,
+      "include_common_denominator": true,
+      "min_locked": 1000,
+      "min_target_per_op": 50
+    }
+  },
+  "causal_interchange": {
+    "runner": "scripts/goalB3_causal_interchange.py",
+    "ops": [
+      "mul",
+      "div_remainder",
+      "lcm",
+      "gcd"
+    ],
+    "fit_eval_seed_pairs": [
+      [
+        701,
+        702
+      ],
+      [
+        711,
+        712
+      ],
+      [
+        721,
+        722
+      ]
+    ],
+    "n_pairs_per_op": 20,
+    "min_follow": 1.0,
+    "max_random_follow": 0.1
+  },
+  "adversarial_families": {
+    "target_distractors": [
+      "pre_distractor",
+      "between_distractor",
+      "post_distractor"
+    ],
+    "hard_negatives": [
+      "quoted_expression_negative",
+      "do_not_compute_negative",
+      "wrong_op_negative",
+      "natural_numeric_negative"
+    ]
+  },
+  "mandatory_artifacts": {
+    "package_audit": "docs/goalB3_paper_package_audit.json",
+    "package_audit_md": "docs/research/641_goalB3_paper_package_audit_2026-06-02.md",
+    "deepmind_cross_seed": "docs/goalB3_deepmind_gcd_div_lcm_cross_seed_summary.json",
+    "broad_cross_seed": "docs/goalB3_benchmark_cross_seed_summary.json",
+    "gcd_cross_seed": "docs/goalB3_gcd_benchmark_cross_seed_summary.json",
+    "causal_cross_seed": "docs/goalB3_causal_interchange_cross_seed.json",
+    "gcd_causal_cross_seed": "docs/goalB3_causal_interchange_gcd_cross_seed.json",
+    "deepmind_provenance": "docs/goalB3_deepmind_gcd_div_lcm_provenance_audit.json",
+    "qwen_transfer": "docs/goalB3_qwen_strict_transfer.json",
+    "deepmind_source_audit": "docs/goalB3_deepmind_source_audit.json"
+  },
+  "known_caveats_to_report": [
+    "DeepMind mul is source-limited under the frozen two-integer route and is not a powered recognized-source claim.",
+    "Qwen strict transfer is a documented falsifier for answer-site operand transfer, not a non-Llama positive.",
+    "Gcd causal interchange passes at the random-control boundary in one seed.",
+    "This manifest preregisters future final reruns; artifacts generated before this manifest remain retrospective evidence."
+  ]
+}

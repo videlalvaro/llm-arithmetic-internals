@@ -1,0 +1,1 @@
+"""Detection methods for candidate symbolic structure."""
