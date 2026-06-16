@@ -1,0 +1,148 @@
+{
+  "backend": "qwen",
+  "model_id": "Qwen/Qwen2.5-7B",
+  "p13_autopsy": {
+    "best_site": {
+      "confidence_calibration_proxy": 0.0007887472065203103,
+      "layer": 8,
+      "mean_abs_error": 1266.8333333333333,
+      "n_locked": 12,
+      "ordered_pair_exact": 0.0,
+      "position": "answer_site",
+      "top5_value_recall_proxy": 0.0,
+      "unordered_pair_exact": 0.0
+    },
+    "collapse_modes_checked": [
+      "decoded_a=0",
+      "decoded_b=0",
+      "layer_site_mismatch"
+    ],
+    "old_probe_bank_comparison": "requires --p13_probe_bank on real backend"
+  },
+  "runtime_label_policy": "labels used only for train/calib fitting and locked grading",
+  "site_metrics": [
+    {
+      "confidence_calibration_proxy": 0.0007887472065203103,
+      "layer": 8,
+      "mean_abs_error": 1266.8333333333333,
+      "n_locked": 12,
+      "ordered_pair_exact": 0.0,
+      "position": "answer_site",
+      "top5_value_recall_proxy": 0.0,
+      "unordered_pair_exact": 0.0
+    },
+    {
+      "confidence_calibration_proxy": 0.00035899123463068773,
+      "layer": 8,
+      "mean_abs_error": 2784.5833333333335,
+      "n_locked": 12,
+      "ordered_pair_exact": 0.0,
+      "position": "input_a",
+      "top5_value_recall_proxy": 0.0,
+      "unordered_pair_exact": 0.0
+    },
+    {
+      "confidence_calibration_proxy": 0.00037154578527749823,
+      "layer": 8,
+      "mean_abs_error": 2690.4583333333335,
+      "n_locked": 12,
+      "ordered_pair_exact": 0.0,
+      "position": "input_b",
+      "top5_value_recall_proxy": 0.0,
+      "unordered_pair_exact": 0.0
+    },
+    {
+      "confidence_calibration_proxy": 0.0006696989145296761,
+      "layer": 10,
+      "mean_abs_error": 1492.2083333333333,
+      "n_locked": 12,
+      "ordered_pair_exact": 0.0,
+      "position": "answer_site",
+      "top5_value_recall_proxy": 0.0,
+      "unordered_pair_exact": 0.0
+    },
+    {
+      "confidence_calibration_proxy": 0.0003589966044904492,
+      "layer": 10,
+      "mean_abs_error": 2784.5416666666665,
+      "n_locked": 12,
+      "ordered_pair_exact": 0.0,
+      "position": "input_a",
+      "top5_value_recall_proxy": 0.0,
+      "unordered_pair_exact": 0.0
+    },
+    {
+      "confidence_calibration_proxy": 0.00040933976906414694,
+      "layer": 10,
+      "mean_abs_error": 2441.9583333333335,
+      "n_locked": 12,
+      "ordered_pair_exact": 0.0,
+      "position": "input_b",
+      "top5_value_recall_proxy": 0.0,
+      "unordered_pair_exact": 0.0
+    },
+    {
+      "confidence_calibration_proxy": 0.0008326394671107411,
+      "layer": 12,
+      "mean_abs_error": 1200.0,
+      "n_locked": 12,
+      "ordered_pair_exact": 0.0,
+      "position": "answer_site",
+      "top5_value_recall_proxy": 0.0,
+      "unordered_pair_exact": 0.0
+    },
+    {
+      "confidence_calibration_proxy": 0.00035898049539308366,
+      "layer": 12,
+      "mean_abs_error": 2784.6666666666665,
+      "n_locked": 12,
+      "ordered_pair_exact": 0.0,
+      "position": "input_a",
+      "top5_value_recall_proxy": 0.0,
+      "unordered_pair_exact": 0.0
+    },
+    {
+      "confidence_calibration_proxy": 0.00040677966101694915,
+      "layer": 12,
+      "mean_abs_error": 2457.3333333333335,
+      "n_locked": 12,
+      "ordered_pair_exact": 0.0,
+      "position": "input_b",
+      "top5_value_recall_proxy": 0.0,
+      "unordered_pair_exact": 0.0
+    },
+    {
+      "confidence_calibration_proxy": 0.0007761213336351583,
+      "layer": 15,
+      "mean_abs_error": 1287.4583333333333,
+      "n_locked": 12,
+      "ordered_pair_exact": 0.0,
+      "position": "answer_site",
+      "top5_value_recall_proxy": 0.0,
+      "unordered_pair_exact": 0.0
+    },
+    {
+      "confidence_calibration_proxy": 0.00035895901884534846,
+      "layer": 15,
+      "mean_abs_error": 2784.8333333333335,
+      "n_locked": 12,
+      "ordered_pair_exact": 0.0,
+      "position": "input_a",
+      "top5_value_recall_proxy": 0.0,
+      "unordered_pair_exact": 0.0
+    },
+    {
+      "confidence_calibration_proxy": 0.00039397222495814047,
+      "layer": 15,
+      "mean_abs_error": 2537.25,
+      "n_locked": 12,
+      "ordered_pair_exact": 0.0,
+      "position": "input_b",
+      "top5_value_recall_proxy": 0.0,
+      "unordered_pair_exact": 0.0
+    }
+  ],
+  "split_hash": "26b2a74d4ce2b5f0d3b2b0abff7145a93aab5df8935d52de9120ce8d9003bc87",
+  "suite": "goalB3_qwen_operand_diagnostics",
+  "verdict": "QWEN_OPERAND_ROUTE_FAIL"
+}

@@ -1,0 +1,89 @@
+{
+  "gates": {
+    "max_random_routed_follow": 0.1,
+    "min_follow": 0.95,
+    "min_pairs_per_op": 50,
+    "min_seeds": 3
+  },
+  "input_paths": [
+    "docs/goalB3_final_deepmind_causal_interchange_seed911.json",
+    "docs/goalB3_final_deepmind_causal_interchange_seed921.json",
+    "docs/goalB3_final_deepmind_causal_interchange_seed931.json"
+  ],
+  "n_runs": 3,
+  "ops": {
+    "div_remainder": {
+      "decoder_follow_gate": true,
+      "max_random_decoder_follow": 0.0,
+      "max_random_routed_follow": 0.0,
+      "min_decoder_follow": 1.0,
+      "min_pairs": 25,
+      "min_routed_follow": 1.0,
+      "n_runs": 3,
+      "pair_count_gate": true,
+      "passes": true,
+      "random_control_gate": true,
+      "rate_gate": true,
+      "routed_follow_gate": true,
+      "seed_count_gate": true,
+      "total_pairs": 75,
+      "verdict": "CAUSAL_GATE_PASS"
+    },
+    "gcd": {
+      "decoder_follow_gate": true,
+      "max_random_decoder_follow": 0.0,
+      "max_random_routed_follow": 0.0,
+      "min_decoder_follow": 1.0,
+      "min_pairs": 5,
+      "min_routed_follow": 1.0,
+      "n_runs": 3,
+      "pair_count_gate": false,
+      "passes": false,
+      "random_control_gate": true,
+      "rate_gate": true,
+      "routed_follow_gate": true,
+      "seed_count_gate": true,
+      "total_pairs": 18,
+      "verdict": "CAUSAL_UNDERPOWERED"
+    },
+    "lcm": {
+      "decoder_follow_gate": true,
+      "max_random_decoder_follow": 0.0,
+      "max_random_routed_follow": 0.0,
+      "min_decoder_follow": 1.0,
+      "min_pairs": 6,
+      "min_routed_follow": 1.0,
+      "n_runs": 3,
+      "pair_count_gate": false,
+      "passes": false,
+      "random_control_gate": true,
+      "rate_gate": true,
+      "routed_follow_gate": true,
+      "seed_count_gate": true,
+      "total_pairs": 20,
+      "verdict": "CAUSAL_UNDERPOWERED"
+    }
+  },
+  "seed_rows": [
+    {
+      "eval_seed": 911,
+      "fit_seed": 911,
+      "path": "docs/goalB3_final_deepmind_causal_interchange_seed911.json",
+      "verdict": "CAUSAL_INTERCHANGE_PASS"
+    },
+    {
+      "eval_seed": 921,
+      "fit_seed": 921,
+      "path": "docs/goalB3_final_deepmind_causal_interchange_seed921.json",
+      "verdict": "CAUSAL_INTERCHANGE_PASS"
+    },
+    {
+      "eval_seed": 931,
+      "fit_seed": 931,
+      "path": "docs/goalB3_final_deepmind_causal_interchange_seed931.json",
+      "verdict": "CAUSAL_INTERCHANGE_PASS"
+    }
+  ],
+  "suite": "goalB3_causal_cross_seed_summary",
+  "verdict": "CAUSAL_UNDERPOWERED"
+}

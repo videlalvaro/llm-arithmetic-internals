@@ -1,0 +1,184 @@
+{
+  "experiment": "eg_e2c_helix_resolution",
+  "op": "sub",
+  "target_layer": 31,
+  "n_4chunk_correct": 875,
+  "per_chunk_R2": {
+    "1": 0.9581859273958949,
+    "2": 0.9266083248029091,
+    "3": 0.9258652008251019,
+    "4": 0.9172589332434239
+  },
+  "per_freq_R2": {
+    "1": {
+      "1": 0.9784784299154817,
+      "2": 0.9665105663042532,
+      "5": 0.915136021226654,
+      "10": 0.9691849922624856,
+      "20": 0.9616197256286125
+    },
+    "2": {
+      "1": 0.9563869267224944,
+      "2": 0.9288161568967375,
+      "5": 0.8485856574484807,
+      "10": 0.9589662844352873,
+      "20": 0.9402862235462657
+    },
+    "3": {
+      "1": 0.951760043372448,
+      "2": 0.9222647072423934,
+      "5": 0.8527569241875316,
+      "10": 0.9587963420478658,
+      "20": 0.9437479922242129
+    },
+    "4": {
+      "1": 0.946700904928518,
+      "2": 0.9130080278967593,
+      "5": 0.8057723449486878,
+      "10": 0.9665910257585095,
+      "20": 0.9542222730857398
+    }
+  },
+  "per_chunk_angular_error": {
+    "1": [
+      {
+        "freq": 1,
+        "rms_radians": 0.09045627215241178,
+        "rms_chunk_units": 14.396562846722095
+      },
+      {
+        "freq": 2,
+        "rms_radians": 0.13721986125413055,
+        "rms_chunk_units": 21.83921920897892
+      },
+      {
+        "freq": 5,
+        "rms_radians": 0.22691364311543752,
+        "rms_chunk_units": 36.11442795681211
+      },
+      {
+        "freq": 10,
+        "rms_radians": 0.11685600183078218,
+        "rms_chunk_units": 18.598210321324554
+      },
+      {
+        "freq": 20,
+        "rms_radians": 0.14008480661935374,
+        "rms_chunk_units": 22.295189425542407
+      }
+    ],
+    "2": [
+      {
+        "freq": 1,
+        "rms_radians": 0.1506134965278068,
+        "rms_chunk_units": 23.970882468754468
+      },
+      {
+        "freq": 2,
+        "rms_radians": 0.2039964549446374,
+        "rms_chunk_units": 32.46704417766215
+      },
+      {
+        "freq": 5,
+        "rms_radians": 0.32716356570163074,
+        "rms_chunk_units": 52.0696986809846
+      },
+      {
+        "freq": 10,
+        "rms_radians": 0.1452476439047488,
+        "rms_chunk_units": 23.116880499892176
+      },
+      {
+        "freq": 20,
+        "rms_radians": 0.17012157560703053,
+        "rms_chunk_units": 27.075689684440515
+      }
+    ],
+    "3": [
+      {
+        "freq": 1,
+        "rms_radians": 0.1626345408870491,
+        "rms_chunk_units": 25.884091099654825
+      },
+      {
+        "freq": 2,
+        "rms_radians": 0.22351702488231673,
+        "rms_chunk_units": 35.573839375214874
+      },
+      {
+        "freq": 5,
+        "rms_radians": 0.3313949490641079,
+        "rms_chunk_units": 52.74314425923964
+      },
+      {
+        "freq": 10,
+        "rms_radians": 0.14199671697900138,
+        "rms_chunk_units": 22.59947941002893
+      },
+      {
+        "freq": 20,
+        "rms_radians": 0.17383573156706095,
+        "rms_chunk_units": 27.666815964893576
+      }
+    ],
+    "4": [
+      {
+        "freq": 1,
+        "rms_radians": 0.17383530929156044,
+        "rms_chunk_units": 27.666748757660326
+      },
+      {
+        "freq": 2,
+        "rms_radians": 0.24019908778318513,
+        "rms_chunk_units": 38.228872146858
+      },
+      {
+        "freq": 5,
+        "rms_radians": 0.42836045480050233,
+        "rms_chunk_units": 68.17568380659235
+      },
+      {
+        "freq": 10,
+        "rms_radians": 0.1327723800421669,
+        "rms_chunk_units": 21.131380589786573
+      },
+      {
+        "freq": 20,
+        "rms_radians": 0.1581108349738037,
+        "rms_chunk_units": 25.164120942467783
+      }
+    ]
+  },
+  "inter_chunk_principal_angles": {
+    "c1_vs_c2": {
+      "min_principal_angle_deg": 71.32213592529297,
+      "mean_principal_angle_deg": 76.90870666503906
+    },
+    "c1_vs_c3": {
+      "min_principal_angle_deg": 72.42930603027344,
+      "mean_principal_angle_deg": 77.5184555053711
+    },
+    "c1_vs_c4": {
+      "min_principal_angle_deg": 74.91026306152344,
+      "mean_principal_angle_deg": 79.46797943115234
+    },
+    "c2_vs_c3": {
+      "min_principal_angle_deg": 66.0042495727539,
+      "mean_principal_angle_deg": 72.25962829589844
+    },
+    "c2_vs_c4": {
+      "min_principal_angle_deg": 70.9873275756836,
+      "mean_principal_angle_deg": 75.91162109375
+    },
+    "c3_vs_c4": {
+      "min_principal_angle_deg": 67.40672302246094,
+      "mean_principal_angle_deg": 74.43583679199219
+    }
+  },
+  "readings": {
+    "A_per_chunk": "FLAT \u2014 per-chunk R\u00b2 is uniform across positions, consistent with the 'bounded mantissa per chunk' prediction.",
+    "B_per_freq": "UNIFORM-FREQ-DECAY \u2014 all freqs decay together; not a clean LSB-first signature.",
+    "D_subspace": "SUBSPACE-CROWDING \u2014 min principal angle 66.0\u00b0, well below 90\u00b0 \u2014 chunks share readout directions (capacity-saturation signature, H1)."
+  },
+  "wall_s": 2.5
+}

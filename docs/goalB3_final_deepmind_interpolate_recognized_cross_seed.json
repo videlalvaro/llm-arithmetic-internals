@@ -1,0 +1,57 @@
+{
+  "acceptance_gates": {
+    "max_false_fire": 0.01,
+    "min_lift": 0.2,
+    "min_seeds": 3
+  },
+  "input_paths": [
+    "docs/goalB3_final_deepmind_interpolate_recognized_seed911.json",
+    "docs/goalB3_final_deepmind_interpolate_recognized_seed921.json",
+    "docs/goalB3_final_deepmind_interpolate_recognized_seed931.json"
+  ],
+  "n_locked_total": 3822,
+  "n_runs": 3,
+  "n_target_locked_total": 1233,
+  "ops": {
+    "div_remainder": {
+      "max_false_fire": 0.0,
+      "mean_lift": 0.8101010101010102,
+      "mean_native_exact": 0.1818181818181818,
+      "mean_routed_exact": 0.9919191919191919,
+      "min_lift": 0.7696969696969698,
+      "min_pair_exact_fired": 0.9939024390243902,
+      "n_runs": 3,
+      "total_locked": 1392,
+      "total_target_locked": 495
+    },
+    "gcd": {
+      "max_false_fire": 0.0,
+      "mean_lift": 0.5021645021645021,
+      "mean_native_exact": 0.4978354978354978,
+      "mean_routed_exact": 1.0,
+      "min_lift": 0.4545454545454546,
+      "min_pair_exact_fired": 1.0,
+      "n_runs": 3,
+      "total_locked": 1254,
+      "total_target_locked": 231
+    },
+    "lcm": {
+      "max_false_fire": 0.0,
+      "mean_lift": 0.9684418145956607,
+      "mean_native_exact": 0.011834319526627219,
+      "mean_routed_exact": 0.980276134122288,
+      "min_lift": 0.9526627218934911,
+      "min_pair_exact_fired": 1.0,
+      "n_runs": 3,
+      "total_locked": 1176,
+      "total_target_locked": 507
+    }
+  },
+  "seeds": [
+    911,
+    921,
+    931
+  ],
+  "suite": "goalB3_benchmark_cross_seed_summary",
+  "verdict": "GOAL_B3_BENCHMARK_CROSS_SEED_PASS"
+}

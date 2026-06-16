@@ -1,0 +1,68 @@
+{
+  "acceptance_gates": {
+    "max_false_fire": 0.01,
+    "min_lift": 0.2,
+    "min_seeds": 3
+  },
+  "input_paths": [
+    "docs/goalB3_final_broad_frozen_arithmetic_adversarial_seed801.json",
+    "docs/goalB3_final_broad_frozen_arithmetic_adversarial_seed811.json",
+    "docs/goalB3_final_broad_frozen_arithmetic_adversarial_seed821.json"
+  ],
+  "n_locked_total": 11736,
+  "n_runs": 3,
+  "n_target_locked_total": 1536,
+  "ops": {
+    "div_remainder": {
+      "max_false_fire": 0.0,
+      "mean_lift": 0.6927083333333334,
+      "mean_native_exact": 0.21614583333333334,
+      "mean_routed_exact": 0.9088541666666666,
+      "min_lift": 0.6796875,
+      "min_pair_exact_fired": 0.9754098360655737,
+      "n_runs": 3,
+      "total_locked": 3384,
+      "total_target_locked": 384
+    },
+    "gcd": {
+      "max_false_fire": 0.0,
+      "mean_lift": 0.59375,
+      "mean_native_exact": 0.328125,
+      "mean_routed_exact": 0.921875,
+      "min_lift": 0.5703125,
+      "min_pair_exact_fired": 0.9831932773109243,
+      "n_runs": 3,
+      "total_locked": 2484,
+      "total_target_locked": 384
+    },
+    "lcm": {
+      "max_false_fire": 0.0,
+      "mean_lift": 0.9661458333333334,
+      "mean_native_exact": 0.0026041666666666665,
+      "mean_routed_exact": 0.96875,
+      "min_lift": 0.953125,
+      "min_pair_exact_fired": 1.0,
+      "n_runs": 3,
+      "total_locked": 2484,
+      "total_target_locked": 384
+    },
+    "mul": {
+      "max_false_fire": 0.0,
+      "mean_lift": 0.8515625,
+      "mean_native_exact": 0.013020833333333334,
+      "mean_routed_exact": 0.8645833333333334,
+      "min_lift": 0.8359375,
+      "min_pair_exact_fired": 0.9646017699115044,
+      "n_runs": 3,
+      "total_locked": 3384,
+      "total_target_locked": 384
+    }
+  },
+  "seeds": [
+    801,
+    811,
+    821
+  ],
+  "suite": "goalB3_benchmark_cross_seed_summary",
+  "verdict": "GOAL_B3_BENCHMARK_CROSS_SEED_PASS"
+}

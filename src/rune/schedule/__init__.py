@@ -1,0 +1,1 @@
+"""Runtime scheduling, adapters, and fallback logic."""

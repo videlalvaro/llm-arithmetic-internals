@@ -1,0 +1,37 @@
+{
+  "benchmark_defaults": {
+    "chunk_pos_threshold": 0.5,
+    "chunk_top_k": 12,
+    "chunk_value_margin_threshold": 0.0,
+    "chunk_window": 1,
+    "max_new_tokens": 12,
+    "op_neg_margin": 0.05,
+    "op_threshold_min": 0.65,
+    "operand_hi": 9999,
+    "operand_lo": 0,
+    "pair_threshold": [
+      "mul=0.05",
+      "div_remainder=0.20",
+      "lcm=0.20",
+      "gcd=0.20"
+    ],
+    "safe_neg_margin": 0.05,
+    "safe_threshold_min": 0.65
+  },
+  "causal_defaults": {
+    "max_random_follow": 0.1,
+    "min_follow": 1.0,
+    "n_pairs_per_op": 20,
+    "pair_threshold": [
+      "mul=0.05",
+      "div_remainder=0.20",
+      "lcm=0.20",
+      "gcd=0.20"
+    ]
+  },
+  "errors": [],
+  "manifest": "docs/goalB3_final_frozen_manifest.json",
+  "package_audit": "docs/goalB3_paper_package_audit.json",
+  "suite": "goalB3_final_manifest_verify",
+  "verdict": "FINAL_MANIFEST_VERIFY_PASS"
+}

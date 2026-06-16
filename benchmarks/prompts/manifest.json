@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "suite_version": "v1",
+  "files": [
+    "algorithmic.jsonl",
+    "carrier.jsonl",
+    "counterfactual.jsonl",
+    "paraphrase.jsonl",
+    "random_memorization.jsonl",
+    "subtemplates.jsonl"
+  ]
+}

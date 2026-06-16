@@ -1,0 +1,241 @@
+{
+  "categories": {
+    "decimals_signs_out_of_domain": {
+      "false_fire_rate": 0.0,
+      "families": {
+        "adv_decimal_mod_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_decimal_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_negative_mod_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_negative_operand_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        }
+      },
+      "fires": 0,
+      "n": 1200,
+      "passes": true
+    },
+    "distractor_heavy_number_text": {
+      "false_fire_rate": 0.0,
+      "families": {
+        "adv_natural_chunk_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_natural_mod_chunk_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        }
+      },
+      "fires": 0,
+      "n": 600,
+      "passes": true
+    },
+    "do_not_compute": {
+      "false_fire_rate": 0.0,
+      "families": {
+        "adv_do_not_gcd_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_do_not_lcm_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_do_not_mod_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_do_not_mul_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        }
+      },
+      "fires": 0,
+      "n": 1200,
+      "passes": true
+    },
+    "quoted_arithmetic": {
+      "false_fire_rate": 0.0,
+      "families": {
+        "adv_quoted_gcd_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_quoted_lcm_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_quoted_mod_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_quoted_mul_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        }
+      },
+      "fires": 0,
+      "n": 1200,
+      "passes": true
+    },
+    "tables_logs_code_invoices": {
+      "false_fire_rate": 0.0,
+      "families": {
+        "adv_code_gcd_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_code_lcm_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_code_mod_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_code_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_table_gcd_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_table_lcm_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_table_mod_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_table_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        }
+      },
+      "fires": 0,
+      "n": 2400,
+      "passes": true
+    },
+    "wrong_op_same_numbers": {
+      "false_fire_rate": 0.0,
+      "families": {
+        "adv_gcd_mod_surface_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_gcd_surface_lcm_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_gcd_surface_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_lcm_mod_surface_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_lcm_surface_gcd_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_lcm_surface_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_mod_surface_gcd_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_mod_surface_lcm_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_mod_surface_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_mul_surface_gcd_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_mul_surface_lcm_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        },
+        "adv_mul_surface_negative": {
+          "false_fire_rate": 0.0,
+          "fires": 0,
+          "n": 300
+        }
+      },
+      "fires": 0,
+      "n": 3600,
+      "passes": true
+    }
+  },
+  "input_paths": [
+    "docs/goalB3_final_broad_frozen_arithmetic_adversarial_seed801_records.jsonl",
+    "docs/goalB3_final_broad_frozen_arithmetic_adversarial_seed811_records.jsonl",
+    "docs/goalB3_final_broad_frozen_arithmetic_adversarial_seed821_records.jsonl"
+  ],
+  "max_false_fire": 0.01,
+  "missing_categories": [],
+  "n_negative": 10200,
+  "n_records": 11736,
+  "required_categories": [
+    "decimals_signs_out_of_domain",
+    "distractor_heavy_number_text",
+    "do_not_compute",
+    "quoted_arithmetic",
+    "tables_logs_code_invoices",
+    "wrong_op_same_numbers"
+  ],
+  "suite": "goalB3_independent_hard_negative_summary",
+  "verdict": "INDEPENDENT_HARD_NEGATIVE_PASS"
+}

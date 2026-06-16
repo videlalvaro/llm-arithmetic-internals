@@ -1,0 +1,3 @@
+{"id":"rand-map-01","family":"random_memorization","task":"random_lookup","input":"key_0001","expected":"label_17","metadata":{"seed":0,"domain":"synthetic_keys"},"tags":["negative_control"]}
+{"id":"rand-map-02","family":"random_memorization","task":"random_lookup","input":"key_0002","expected":"label_03","metadata":{"seed":0,"domain":"synthetic_keys"},"tags":["negative_control"]}
+{"id":"rand-map-03","family":"random_memorization","task":"random_lookup","input":"key_0003","expected":"label_29","metadata":{"seed":0,"domain":"synthetic_keys"},"tags":["negative_control"]}

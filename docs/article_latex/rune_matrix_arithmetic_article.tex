@@ -1,0 +1,810 @@
+\documentclass[acmsmall,screen,nonacm]{acmart}
+
+\settopmatter{printacmref=false}
+\setcopyright{none}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{microtype}
+\usepackage{tabularx}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+
+\graphicspath{{../article_figures/}{../article_interactive/assets/}}
+
+\title{Arithmetic Without Numbers}
+\subtitle{What happens inside an LLM when it tries to calculate with nothing but matrices}
+
+\author{Alvaro Videla}
+\makeatletter
+\def\@authorsaddresses{}
+\makeatother
+
+\begin{abstract}
+A language model has no fingers, no beads, no scratch paper, and no number
+line. It has matrices. This article asks what kind of arithmetic grows inside
+that body: phase-like geometry rather than written columns, a residual stream
+rather than paper, and failure modes shaped by left-to-right token emission and
+finite representational resolution. The strongest verified result is scoped to
+one frozen 8B Llama: an activation-derived route can read operation and operand
+arguments from hidden states under a strict no-parser runtime. The point is not
+that the model was made into an exact calculator. The point is how carefully one
+has to work before saying that the calculation was really present inside.
+\end{abstract}
+
+\begin{document}
+\maketitle
+
+\begin{quote}
+\small
+This PDF is the static article. The animated companion, with the helix slider
+and browser-side simulations, is available at
+\url{https://alvaro-videla.com/llm-arithmetic-internals/article_interactive/}.
+\end{quote}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{blender_integer_helix.png}
+  \caption{A visual analogy for integer phase geometry in a matrix-only model:
+  value can be represented by position on rotating directions rather than by
+  fingers, beads, or written columns.}
+  \Description{A rendered helix-like curve with glowing integer points.}
+\end{figure}
+
+\section{The Question}
+
+If you learned arithmetic the ordinary human way, you probably learned it with
+a body. You counted on fingers, grouped things into piles, lined digits into
+columns, and carried a one. Human arithmetic is full of objects: fingers,
+beads, marks, columns, strokes, and places.
+
+A language model has none of that. It has matrices.
+
+At each layer, a grid of numbers transforms another grid of numbers. Tokens
+enter, activations flow, logits come out. No fingers. No abacus. No column of
+digits written on a page. And yet, if you ask a modern language model for the
+greatest common divisor of two numbers, or a multiplication, or a division with
+remainder, something inside that matrix-only body responds.
+
+Sometimes it answers correctly. Often it does not. The question that started
+Rune was simple to ask and hard to answer: how does a language model do
+arithmetic, if all it has are vectors?
+
+The first temptation is to treat this as a product problem. If the model is bad
+at arithmetic, call a calculator. A parser can read ``what is 84 times 37,''
+translate it into \texttt{84 * 37}, send that expression to Python, and return
+the result. Useful, but not much of a mystery. That general family of
+external-computation routes is well established: PAL and Program of Thoughts ask
+models to produce executable programs, ReAct interleaves reasoning with actions,
+and Toolformer studies models learning when and how to call
+APIs~\cite{gao2022pal,chen2022pot,yao2022react,schick2023}.
+
+Rune was chasing a different question. Could we look inside the model and find
+the calculation it was trying to perform? Could the model's own internal states
+tell us the operation and operands? And, if so, could we use that information
+without cheating by reading the prompt text directly?
+
+The promise of the article is this: a matrix-only body can invent ways to
+represent divisibility, magnitude, digit chunks, and numeric emission. The model
+did not conjure arithmetic from nothing; it distilled patterns from human text
+about human mathematics. The surprise is that gradient descent, given our
+symbols and a matrix body, settled on representations no human would learn with
+fingers.
+
+\section{A Different Kind of Tool Use}
+
+The original dream was more ambitious: a mechanism-aware just-in-time compiler
+for model arithmetic. The ideal pipeline looked like this. The model reads an
+arithmetic prompt; we identify the internal mechanism it is using; we replace
+the unreliable part with exact computation; then the model continues naturally,
+as if it had done the math itself.
+
+It is a seductive pipeline, and it is not what Rune proves.
+
+What survived the experiments was narrower, but more interesting than ordinary
+tool use. In a frozen Llama model, internal activations expose enough structure
+to recover the arithmetic operation and operands under a strict no-parser rule.
+The runtime is not allowed to use regexes, prompt text, hidden labels,
+command-line operands, or gold answers. It gets token IDs and activations. From
+those activations, it must infer: this is gcd, or lcm, or multiplication, or
+division with remainder; these are the two numbers. Only after that decoded
+tuple exists may Python compute.
+
+The calculator is not the surprising part. The surprising part is that its
+arguments can come from inside the model.
+
+A normal tool route can solve the problem without learning anything about model
+internals. Rune asks whether the model's residual stream already carries the
+calculation description, even when the model's own next-token answer would be
+wrong.
+
+The no-parser rule is therefore epistemic, not merely procedural. It exists so
+that later, when the article says the hidden state contained the calculation,
+the reader does not have to wonder whether a regex, a hidden operand field, or a
+gold answer smuggled the result into the route. The supported claim is narrow:
+activation-derived op and operand readouts can supply calculator arguments for
+an opaque no-parser route on the current frozen Llama benchmark slices, without
+also proving native arithmetic repair, residual-state JIT replacement, or
+cross-model transfer.
+
+The production operand route used a frozen layer-22 chunk path: selected
+operand chunks, with attention-based selection, were decoded by the project
+chunk probe. That matters because reading operands directly from their
+input-token positions in early layers would be too close to parsing in
+disguise. Layer-22 chunk selection is a stronger internal-state claim, though
+still a readout claim rather than proof of writable replacement. The exact
+probe artifact is listed in the repository's experiment notes.
+
+\begin{figure*}[t]
+  \centering
+  \begin{tikzpicture}[
+    font=\small,
+    box/.style={draw, rounded corners, align=center, minimum height=1.05cm,
+      text width=2.45cm, fill=black!3},
+    active/.style={draw, rounded corners, align=center, minimum height=1.05cm,
+      text width=2.45cm, fill=black!10, very thick},
+    arrow/.style={-Latex, thick}
+  ]
+    \node[box] (p) {Prompt\\parser};
+    \node[box, right=0.65cm of p] (tool) {Generated\\program/tool};
+    \node[box, right=0.65cm of tool] (logit) {Final-token\\correction};
+    \node[active, below=1.05cm of tool] (read) {Activation\\readout};
+    \node[box, right=0.65cm of read] (write) {Residual JIT\\replacement};
+    \draw[arrow] (p) -- (tool);
+    \draw[arrow] (tool) -- (logit);
+    \draw[arrow] (logit.south) -- ++(0,-.35) -| (read.north);
+    \draw[arrow] (read) -- (write);
+    \node[align=center, below=0.25cm of p] {text};
+    \node[align=center, below=0.25cm of tool] {model asks};
+    \node[align=center, below=0.25cm of logit] {token fixed};
+    \node[align=center, below=0.25cm of read] {hidden state\\supplies args};
+    \node[align=center, below=0.25cm of write] {not shown\\here};
+  \end{tikzpicture}
+  \caption{Claim ladder for the same visible answer. Rune's supported claim is
+  the highlighted activation-readout route: the calculator arguments come from
+  hidden vectors, not from prompt parsing or an already-known answer.}
+  \Description{A five-step left-to-right claim ladder highlighting activation
+  readout.}
+\end{figure*}
+
+\section{The Matrix Body}
+
+George Lakoff and Rafael N{\'u}{\~n}ez argued that human mathematics is built
+from embodied experience: grouping, moving, measuring, collecting, and
+balancing~\cite{lakoff2000}. A transformer has a different body. Its body is
+matrices, residual streams, attention maps, and learned projections. If human
+arithmetic can grow out of fingers and spatial metaphors, what kind of
+arithmetic grows out of a matrix-only body?
+
+Recent mechanistic work suggests a geometric answer. Kantamneni and Tegmark
+argued that language models can represent integers on generalized helices and
+use trigonometric structure for addition~\cite{kantamneni2025}. Stolfo,
+Belinkov, and Sachan used causal mediation analysis to study arithmetic
+mechanisms in transformers~\cite{stolfo2023}. Other work, including Nikankin
+and colleagues' ``bag of heuristics'' account, warns that model arithmetic is
+often not a clean schoolbook algorithm but a mixture of learned features and
+prompt-sensitive heuristics~\cite{nikankin2024}.
+
+Rune builds on that line rather than originating it. The contribution here is a
+scoped reproduction-and-extension story around activation-derived tool
+arguments, provenance controls, and resolution limits. We found Fourier-like
+readouts and value-like states, but also brittleness, prompt sensitivity, and
+failures that look less like a perfect algorithm than a finite-resolution
+internal geometry.
+
+\begin{figure*}[t]
+  \centering
+  \begin{tikzpicture}[
+    font=\scriptsize,
+    panel/.style={draw, rounded corners, minimum width=3.25cm,
+      minimum height=3.45cm, fill=black!2},
+    tick/.style={font=\tiny, text=black!60},
+    vec/.style={-Latex, very thick},
+    dot/.style={circle, fill=black, inner sep=1.35pt}
+  ]
+    \foreach \x/\n/\ang/\coarse/\cv/\sv in {
+      0/137/49/13/0.65/0.76,
+      4.15/508/183/50/-1.00/-0.05,
+      8.3/884/318/88/0.74/-0.67
+    } {
+      \node[panel] at (\x,0) {};
+      \node[font=\small\bfseries] at (\x,1.45) {integer \n};
+      \draw[black!45] (\x,0.34) circle (.78);
+      \draw[black!25] (\x-.78,0.34) -- (\x+.78,0.34);
+      \draw[black!25] (\x,-.44) -- (\x,1.12);
+      \draw[vec] (\x,0.34) -- ++(\ang:.72);
+      \node[dot] at ($(\x,0.34)+(\ang:.72)$) {};
+      \node[tick] at (\x,-.67) {phase \ang$^\circ$};
+      \node[tick, anchor=west] at (\x-1.22,-1.05) {$\cos \theta=\cv$};
+      \node[tick, anchor=west] at (\x-1.22,-1.30) {$\sin \theta=\sv$};
+      \draw[black!25, line width=2pt] (\x-1.15,-1.62) -- (\x+1.15,-1.62);
+      \draw[black!70, line width=2pt] (\x-1.15,-1.62) --
+        ++({2.3*\coarse/100},0);
+      \node[tick] at (\x,-1.88) {coarse position \coarse};
+    }
+  \end{tikzpicture}
+  \caption{Static counterpart to the animated helix control. The interactive
+  page lets the reader drag the integer value; in print, three snapshots show
+  the same idea. A value can be represented by phase around a cycle, by
+  sine/cosine coordinates of that phase, and by a coarser scale coordinate.}
+  \Description{Three panels showing different integer values as phase arrows on
+  circles with cosine, sine, and coarse-position readouts.}
+\end{figure*}
+
+The body mapping is the useful way to read the rest of the story. Fingers,
+beads, and tally marks become directions in activation space. The number line
+and human motion-along-a-path metaphors become phase rotation on a helix, close
+to Kantamneni and Tegmark's clock-like picture. Scratch paper becomes the
+residual stream, a shared scratchpad with no named variables. Right-to-left
+carry algorithms are constrained by a body that must emit text left to right.
+Running out of paper or column width becomes a resolution budget: nearby chunk
+readout directions crowd together.
+
+\begin{table}[t]
+  \caption{The same arithmetic task, two different bodies. The analogy is not
+  literal anatomy; it is a guide to which representations and failures each body
+  makes natural.}
+  \label{tab:bodymap}
+  \centering
+  \begin{tabularx}{\linewidth}{XX}
+    \toprule
+    Human arithmetic body & Matrix arithmetic body \\
+    \midrule
+    Fingers, beads, tally marks & Directions in activation space \\
+    Number line and motion along a path & Phase rotation on a helix \\
+    Scratch paper and written columns & Residual stream with no named variables \\
+    Right-to-left carries & Left-to-right token emission \\
+    Running out of column width & Crowded chunk readout subspaces \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{A Vector Changes as the Model Reads}
+
+Imagine reading \texttt{What is the gcd of 84 and 36?} one token at a time. The
+model does not create neat variables named \texttt{operand\_a} and
+\texttt{operand\_b}. Each token position carries a long vector. As the prompt
+passes through transformer layers, those vectors are updated repeatedly. Some
+updates move information across positions: the token for \texttt{36} can affect
+the state near the answer position. Other updates reshape the local state: a
+direction in the vector may become more gcd-like, more operand-like, or more
+answer-like.
+
+The terms are less exotic in context. A token is one unit the model reads or
+prints; for numbers it may be a chunk of digits rather than a full integer. The
+activation is the temporary vector at a token position. The residual stream is
+the running vector passed from layer to layer, a shared scratchpad without named
+variables. Attention lets one position gather information from others; the MLP,
+or feed-forward block, then reshapes that position's vector locally. At the end,
+logits score possible next tokens.
+
+This is why readouts and patches are possible at all. Operation and operands can
+leave traces in the residual stream, and a small readout may recover them. A
+patch asks a stronger question: whether moving a state changes behavior. A
+writable intervention is stronger still. The vector itself does not label which
+claim is true.
+
+\begin{figure*}[t]
+  \centering
+  \begin{tikzpicture}[
+    font=\small,
+    token/.style={draw, rounded corners, align=center, minimum height=.75cm,
+      minimum width=1.35cm, fill=black!3},
+    state/.style={draw, rounded corners, align=center, minimum height=.9cm,
+      text width=2.25cm, fill=black!8},
+    op/.style={draw, rounded corners, align=center, minimum height=.9cm,
+      text width=1.85cm, fill=black!2},
+    arrow/.style={-Latex, thick}
+  ]
+    \node[token] (t1) {What};
+    \node[token, right=.18cm of t1] (t2) {is};
+    \node[token, right=.18cm of t2] (t3) {gcd};
+    \node[token, right=.18cm of t3] (t4) {84};
+    \node[token, right=.18cm of t4] (t5) {36?};
+
+    \node[state, below=.65cm of t3] (res) {residual stream\\running vector};
+    \node[op, below=.65cm of res, xshift=-2.75cm] (attn) {attention\\moves info};
+    \node[op, below=.65cm of res] (mlp) {MLP\\reshapes vector};
+    \node[op, below=.65cm of res, xshift=2.75cm] (readout) {readout\\op, a, b};
+
+    \draw[arrow] (t3) -- (res);
+    \draw[arrow] (t4) -- (res);
+    \draw[arrow] (t5) -- (res);
+    \draw[arrow] (res) -- (attn);
+    \draw[arrow] (res) -- (mlp);
+    \draw[arrow] (res) -- (readout);
+  \end{tikzpicture}
+  \caption{The residual stream is a running vector, not a named variable table.
+  Attention can move operand information across positions; the MLP reshapes the
+  local vector; a readout asks whether facts such as \texttt{gcd, 84, 36} are
+  recoverable from that state.}
+  \Description{Prompt tokens feeding a residual stream, with arrows to
+  attention, MLP, and readout boxes.}
+\end{figure*}
+
+\section{Next-Token Pressure}
+
+Next-token prediction changes the arithmetic problem because it changes the
+body. A human doing subtraction on paper usually works from the least
+significant digit toward the left: units first, then tens, then hundreds,
+carrying or borrowing as needed. Paper permits that. A language model must emit
+text from left to right. For the answer \texttt{15696}, it must commit to the
+visible prefix before the suffix exists. In tokenized form, the answer may come
+out as chunks like \texttt{15} then \texttt{696}. The model is not filling in a
+scratch sheet from right to left; it is walking forward through the string.
+
+\begin{figure}[t]
+  \centering
+  \begin{tikzpicture}[
+    font=\small,
+    digit/.style={draw, minimum width=.55cm, minimum height=.55cm, fill=black!3},
+    arrow/.style={-Latex, thick}
+  ]
+    \node[align=left] at (0,1.05) {human scratch};
+    \foreach \x/\d in {0/1,0.65/5,1.3/6,1.95/9,2.6/6} {
+      \node[digit] at (\x,0.55) {\d};
+    }
+    \draw[arrow] (2.6,0.05) -- node[below] {\scriptsize carries move left} (0,0.05);
+
+    \node[align=left] at (5.0,1.05) {model emission};
+    \node[digit, minimum width=.85cm] at (4.6,0.55) {15};
+    \node[digit, minimum width=1.05cm] at (5.65,0.55) {696};
+    \draw[arrow] (4.15,0.05) -- node[below] {\scriptsize prints left to right} (6.25,0.05);
+  \end{tikzpicture}
+  \caption{Humans can compute from the rightmost digit and write the answer
+  later. A next-token model must emit the visible prefix first. That makes
+  numeric rendering a separate pressure from internal arithmetic.}
+  \Description{A diagram contrasting human right-to-left scratch work with
+  model left-to-right token emission.}
+\end{figure}
+
+That left-to-right constraint creates a rendering problem separate from the
+arithmetic problem. The model may have partial information about the answer but
+still lose precision as it emits longer strings. In Rune's subtraction scaling
+experiment, exact greedy generation stayed at 96.7 percent for 6-digit
+subtraction, fell to 63.3 percent at 10 digits, reached 53.3 percent at 13
+digits, and crossed below 50 percent at 14 digits. At 24 digits it was down to
+6.7 percent.
+
+A separate counting experiment made the same pressure visible in a simpler
+setting. The model saw runs of large consecutive numbers and had to print the
+next one. An easy case simply advances the last chunk. A deep-carry case must
+change multiple chunks at once. Cases like this collapsed; the best deep-carry
+cell reached only 18.75 percent accuracy, and the dominant error was
+stuck-copy. In this body, arithmetic failure need not look like a wrong carried
+one in a paper column. It can look like a visible token stream copying old
+chunks because the carry has to cross boundaries before the model can print
+them.
+
+\begin{figure}[t]
+  \centering
+  \begin{tikzpicture}[
+    font=\scriptsize,
+    chunk/.style={draw, rounded corners, minimum width=.78cm, minimum height=.5cm,
+      align=center, fill=black!3},
+    changed/.style={draw, rounded corners, minimum width=.78cm, minimum height=.5cm,
+      align=center, fill=black!12, very thick},
+    arrow/.style={-Latex, thick}
+  ]
+    \node[align=left] at (1.7,1.35) {easy: last chunk changes};
+    \foreach \x/\d in {0/314,.85/582,1.7/706,2.55/123} {
+      \node[chunk] at (\x,.8) {\d};
+    }
+    \node[changed] at (3.4,.8) {453};
+    \draw[arrow] (3.4,.5) -- (3.4,.15);
+    \foreach \x/\d in {0/314,.85/582,1.7/706,2.55/123} {
+      \node[chunk] at (\x,-.15) {\d};
+    }
+    \node[changed] at (3.4,-.15) {454};
+
+    \node[align=left] at (1.7,-1.05) {hard: carry crosses chunks};
+    \foreach \x/\d in {0/314,.85/582,1.7/706,2.55/999,3.4/999} {
+      \node[chunk] at (\x,-1.6) {\d};
+    }
+    \draw[arrow] (3.4,-1.9) -- (3.4,-2.25);
+    \foreach \x/\d in {0/314,.85/582} {
+      \node[chunk] at (\x,-2.55) {\d};
+    }
+    \foreach \x/\d in {1.7/707,2.55/000,3.4/000} {
+      \node[changed] at (\x,-2.55) {\d};
+    }
+  \end{tikzpicture}
+  \caption{The counting experiment exposed the same left-to-right pressure in
+  token chunks. The easy case edits one final chunk; the hard case must update
+  several chunks before the model has printed them.}
+  \Description{Two chunked counting examples, one changing only the last chunk
+  and one carrying across several chunks.}
+\end{figure}
+
+\begin{table}[t]
+  \caption{Counting continuation example. The model tokenizer splits the
+  visible number into chunks; the hard case requires a carry across two chunk
+  boundaries.}
+  \label{tab:counting}
+  \centering
+  \begin{tabularx}{\linewidth}{lX}
+    \toprule
+    Case & Chunks \\
+    \midrule
+    Easy next &
+    \texttt{314 | 582 | 706 | 123 | 453 -> 314 | 582 | 706 | 123 | 454} \\
+    Deep carry &
+    \texttt{314 | 582 | 706 | 999 | 999 -> 314 | 582 | 707 | 000 | 000} \\
+    Stuck-copy error &
+    \texttt{314 | 582 | 706 | 999 | 999 -> 314 | 582 | 706 | 999 | 999} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{empirical_helix_resolution_sub.png}
+  \caption{Empirical helix-resolution evidence for multi-chunk subtraction.
+  Longer answers remain partly readable, but adjacent chunk subspaces become
+  more crowded and less forgiving.}
+  \Description{A plotted summary of helix resolution and chunk crowding.}
+\end{figure}
+
+The helix-resolution experiments gave a more mechanistic picture of that
+boundary. For 12-digit subtraction answers split into four 3-digit chunks, each
+chunk remained strongly phase-decodable at layer 31: $R^2$---roughly, how much
+of the chunk's value a simple readout recovered---was about 0.96 for chunk 1
+and about 0.92 for chunk 4. So the signal did not simply vanish. The subtler
+finding was crowding. Adjacent chunk readout subspaces were not cleanly
+orthogonal; the minimum principal angle, a measure of how separable two nearby
+readout directions are, dropped as low as 66 degrees. Smaller angles mean less
+separation. In a 14-digit, five-chunk follow-up, chunks 2--4 lost $R^2$ and
+adjacent angles tightened further, for example c3--c4 went from 67.4 degrees to
+58.8 degrees. Two of three preregistered crowding predictions passed.
+
+The phrase ``the helix gets saturated'' is too crude. The cleaner claim is a
+resolution budget: longer answers still live in readable geometry, while nearby
+chunk directions crowd together. This is the matrix body's version of running
+out of column width.
+
+\begin{table}[t]
+  \caption{Subtraction exact-match rate by answer digit count. Source:
+  \texttt{cd\_e10\_operand\_scaling}, 30 greedy generations per digit band.}
+  \label{tab:digitscaling}
+  \centering
+  \begin{tabular}{rrrr}
+    \toprule
+    Digits & Exact & Prefix correct & Mean edit distance \\
+    \midrule
+    6 & 96.67\% & 97.2\% & 0.10 \\
+    10 & 63.33\% & 80.7\% & 0.60 \\
+    13 & 53.33\% & 73.8\% & 1.07 \\
+    14 & 43.33\% & 67.1\% & 1.07 \\
+    16 & 33.33\% & 64.6\% & 1.40 \\
+    24 & 6.67\% & 17.6\% & 8.77 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[t]
+  \caption{Adjacent chunk subspace angles tightened in the 14-digit follow-up.
+  Smaller angles mean less separation between nearby readout directions.}
+  \label{tab:chunkangles}
+  \centering
+  \begin{tabular}{lrr}
+    \toprule
+    Chunk pair & 12-digit & 14-digit \\
+    \midrule
+    c1--c2 & 71.3$^\circ$ & 65.3$^\circ$ \\
+    c2--c3 & 66.0$^\circ$ & 60.2$^\circ$ \\
+    c3--c4 & 67.4$^\circ$ & 58.8$^\circ$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \begin{tikzpicture}[
+    font=\scriptsize,
+    axis/.style={draw=black!55},
+    ray/.style={-Latex, thick},
+    crowded/.style={-Latex, very thick}
+  ]
+    \draw[axis] (-1.35,0) -- (1.35,0);
+    \draw[axis] (0,-1.35) -- (0,1.35);
+    \draw[ray] (0,0) -- (35:1.15) node[above right] {c1};
+    \draw[ray] (0,0) -- (105:1.15) node[above] {c2};
+    \draw[ray] (0,0) -- (175:1.15) node[left] {c3};
+    \node at (0,-1.62) {more separated};
+
+    \begin{scope}[xshift=4.2cm]
+      \draw[axis] (-1.35,0) -- (1.35,0);
+      \draw[axis] (0,-1.35) -- (0,1.35);
+      \draw[crowded] (0,0) -- (45:1.15) node[above right] {c1};
+      \draw[crowded] (0,0) -- (73:1.15) node[above] {c2};
+      \draw[crowded] (0,0) -- (101:1.15) node[above left] {c3};
+      \node at (0,-1.62) {crowded};
+    \end{scope}
+  \end{tikzpicture}
+  \caption{Crowding is a geometric resolution problem. In the experiments this
+  was measured with principal angles between chunk readout subspaces; the
+  drawing is only a visual guide to what smaller angles mean.}
+  \Description{Two angle diagrams contrasting separated chunk directions with
+  crowded chunk directions.}
+\end{figure}
+
+\section{What Failed Usefully}
+
+At first, this looked like a path toward the compiler dream. If we could write
+the right answer state into the model, perhaps the model would continue from
+there.
+
+The evidence sharpened that hope into something more modest. Making a model
+emit a known answer is not the same as making the model compute. If the
+experiment already knows the answer, and then uses that answer to choose a
+steering vector, it has measured the model's ability to render a supplied
+value. Useful, yes; but it tells us little about arithmetic understanding, and
+it would not be a deployable no-parser route.
+
+This was one of the first major lessons: token rendering can masquerade as
+computation.
+
+The residual-write story also became clearer. We tried to write corrected
+answer information into the model's residual stream and let it continue. For
+the tested single-site writes, residual interventions had no accuracy advantage
+over simpler token or logit correction. Worse, they disturbed surrounding
+behavior more. A readable variable is not necessarily a writable register; in
+these runs, reading the body was easier than operating on it.
+
+Mechanistic interpretability often celebrates reading: decode a concept,
+localize a feature, find a direction. Sparse autoencoders and dictionary
+learning are one important approach to naming such features in dense activation
+spaces~\cite{bricken2023,cunningham2023}. Activation patching is one common way
+to move from readout toward causal evidence, but patching methodology has its
+own pitfalls and metric choices~\cite{zhang2023patching}. Engineering asks for
+the harsher version: change the state, preserve the rest of the behavior, and
+let execution continue.
+
+\section{The Inspection Toolbox}
+
+Most of Rune was not one big experiment. It was a toolbox applied repeatedly,
+with stricter controls each time. The tools are useful, but each answers a
+different question.
+
+This is why the article keeps distinguishing readout, causality, and writable
+replacement. A probe reads a fact from an activation. An SAE tries to name
+reusable features. A patch copies part of one run into another and watches
+whether behavior follows. Steering is the blunt instrument: push the state and
+see what moves, or what breaks. Treating those as the same claim is how
+interpretability experiments overclaim.
+
+\begin{figure*}[t]
+  \centering
+  \begin{tikzpicture}[
+    font=\small,
+    center/.style={draw, circle, align=center, minimum width=2.1cm, fill=black!8},
+    tool/.style={draw, rounded corners, align=center, text width=2.7cm,
+      minimum height=1.1cm, fill=black!3},
+    arrow/.style={-Latex, thick}
+  ]
+    \node[center] (act) {activation\\vector};
+    \node[tool, above left=1.0cm and 1.9cm of act] (probe) {Probe\\read a fact};
+    \node[tool, above right=1.0cm and 1.9cm of act] (sae) {SAE\\name features};
+    \node[tool, below left=1.0cm and 1.9cm of act] (patch) {Patch\\test causality};
+    \node[tool, below right=1.0cm and 1.9cm of act] (steer) {Steer\\push behavior};
+    \draw[arrow] (act) -- (probe);
+    \draw[arrow] (act) -- (sae);
+    \draw[arrow] (act) -- (patch);
+    \draw[arrow] (act) -- (steer);
+  \end{tikzpicture}
+  \caption{The same activation can be inspected in different ways. The tools do
+  not make the same claim: readout, feature naming, causal testing, and steering
+  are different standards of evidence.}
+  \Description{A central activation vector connected to probe, SAE, patch, and
+  steering boxes.}
+\end{figure*}
+
+\section{The Route That Survived}
+
+The final route matters because it is the proof apparatus for the wonder. It
+does not make the model a better native calculator. It asks whether the matrix
+body really carries the calculation description strongly enough that a
+calculator can be called without reading the prompt text.
+
+The route used activation-only gates and operand readouts. It had to decide
+when an arithmetic route was safe to fire, identify the operation, identify the
+operand pair, and then call Python only after the decoded tuple was formed. The
+final claim-bearing rerun was preregistered on June 2, 2026, with thresholds,
+operand bounds, and the benchmark-suite runner fixed in advance.
+
+\begin{figure*}[t]
+  \centering
+  \begin{tikzpicture}[
+    font=\small,
+    box/.style={draw, rounded corners, align=center, text width=2.15cm,
+      minimum height=1.0cm, fill=black!3},
+    gate/.style={draw, rounded corners, align=center, text width=2.15cm,
+      minimum height=1.0cm, fill=black!10},
+    no/.style={draw, rounded corners, align=center, text width=3.6cm,
+      minimum height=1.0cm, fill=black!1},
+    arrow/.style={-Latex, thick}
+  ]
+    \node[box] (tok) {opaque\\token IDs};
+    \node[box, right=.55cm of tok] (act) {captured\\activations};
+    \node[gate, right=.55cm of act] (gate) {op + safe\\gates};
+    \node[gate, below=1.05cm of act] (tuple) {decoded\\(op, a, b)};
+    \node[box, right=.55cm of tuple] (py) {Python\\calculator};
+    \node[box, right=.55cm of py] (ans) {exact-answer\\scoring};
+    \draw[arrow] (tok) -- (act);
+    \draw[arrow] (act) -- (gate);
+    \draw[arrow] (gate.south) -- ++(0,-.35) -| (tuple.north);
+    \draw[arrow] (tuple) -- (py);
+    \draw[arrow] (py) -- (ans);
+    \node[no, below=.75cm of tuple] (forbid) {forbidden at runtime:\\prompt text, regex, gold,\\harness operands};
+    \draw[-Latex, dashed] (forbid) -- (gate);
+  \end{tikzpicture}
+  \caption{The surviving route is activation-derived tool use. The calculator is
+  ordinary; the provenance question is whether its arguments came from hidden
+  state rather than forbidden prompt-derived fields.}
+  \Description{A pipeline from opaque token IDs and activations to gates, decoded
+  tuple, calculator, and exact answer, with forbidden runtime fields marked.}
+\end{figure*}
+
+\begin{table}[t]
+  \caption{Broad frozen arithmetic/adversarial cross-seed aggregate on
+  Llama-3.1-8B. Routed is exact-answer accuracy after activation-derived
+  routing. Lift is routed exact accuracy minus the frozen model's native exact
+  accuracy on target prompts, with non-fired targets counted as the route's
+  produced answer. False-fire is the rate of unwanted calculator calls on
+  prompts where the route should stay silent.}
+  \label{tab:broad}
+  \centering
+  \begin{tabular}{lrrr}
+    \toprule
+    Operation & Routed & Lift & False-fire rate \\
+    \midrule
+    multiplication & 0.865 & 0.852 & 0.000 \\
+    division with remainder & 0.909 & 0.693 & 0.000 \\
+    lcm & 0.969 & 0.966 & 0.000 \\
+    gcd & 0.922 & 0.594 & 0.000 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+On a broad benchmark with the Llama weights kept frozen, the route passed across
+four operations: multiplication, division with remainder, gcd, and lcm. Here
+``passed'' means two things at once. On real arithmetic prompts, the route had
+to fire: a gate had to decide that the calculator was allowed to run, and the
+operation and operands had to come from activations. On adversarial prompts,
+written to tempt the route into doing the wrong thing, it had to stay silent.
+Across 11,736 locked examples---with examples, thresholds, and scoring rules
+fixed before the final aggregate---and 1,536 targets, it produced large
+exact-answer lifts with zero fires on the constructed hard-negative suite used
+in this audit. A hard negative is a deliberately tricky no-fire prompt: it may
+contain quoted arithmetic, code, a table of numbers, or an instruction saying
+not to compute, but the correct behavior is no calculator call
+(Table~\ref{tab:broad}).
+
+The route's operand bounds were frozen at integers from 0 through 9999, with at
+most 12 generated answer tokens. In plain terms, the supported claim is
+two-integer arithmetic within that published route, not arbitrary long
+arithmetic.
+
+On a recognized source slice from the DeepMind Mathematics Dataset of Saxton
+and colleagues~\cite{saxton2019}, the result covered three operations: gcd,
+division with remainder, and lcm. Recognized means the audit could map a dataset
+prompt to one of the supported forms: two integer operands, a supported
+operation, and a checkable answer. It is a coverage filter; unsupported
+DeepMind prompts remain outside the claim. Multiplication was not claimed there
+because the source filtering did not produce enough accepted two-integer
+multiplication examples for a powered result. Across 3,822 locked examples and
+1,233 targets, the activation-derived route again produced strong exact-answer
+lifts with zero recorded false fires.
+
+In plain percentages, the accepted DeepMind slice is not a story about
+preserving answers the model already knew. The routed exact rates were 99.2
+percent for division with remainder, 100 percent for gcd, and 98.0 percent for
+lcm, with exact-answer gains of 81.0, 50.2, and 96.8 percentage points over the
+frozen model's native answers.
+
+\begin{table*}[t]
+  \caption{Examples of the fire/no-fire boundary. The route should fire on
+  arithmetic requests, but not merely because arithmetic-looking text appears.}
+  \label{tab:promptexamples}
+  \centering
+  \begin{tabularx}{\textwidth}{XX}
+    \toprule
+    Should fire & Should not fire \\
+    \midrule
+    \texttt{Calculate the highest common factor of 5924 and 1024.} &
+    \texttt{She wrote 'gcd(48, 18) = 6' on the whiteboard and then changed the
+    subject to budgets of 200 and 300.} \\
+    \texttt{What is the remainder when 7696 is divided by 5130?} &
+    \texttt{A reporter typed '144 / 12' into her notes but the story was about
+    a basketball game.} \\
+    \texttt{What is the smallest common multiple of 4740 and 1152?} &
+    \texttt{The chart showed 6, 12, 18, 24 as factor labels but the article
+    discussed musical notation.} \\
+    \bottomrule
+  \end{tabularx}
+\end{table*}
+
+The safety and provenance work mattered as much as the benchmark lifts.
+Provenance, concretely, means the audit trail for where the calculator arguments
+came from. We ran a full replay audit over 15,558 runtime bundles, excluding
+forbidden fields such as prompt text, regex outputs, decoded token spans,
+harness operands, operation labels, and gold answers. The route had to
+reproduce from allowed runtime artifacts. It passed with zero replay failures.
+
+We also ran an independent hard-negative audit, using no-fire cases generated
+separately from the positive arithmetic benchmark. The categories included
+quoted arithmetic, do-not-compute prompts, wrong-operation prompts with the same
+numbers, tables, logs, code, invoices, distractor-heavy number text, decimals,
+signs, and out-of-domain cases. Across 10,200 non-trigger examples, the route
+did not fire. That zero is a strong scoped audit result, not a universal safety
+claim: the hard negatives were constructed within this project, and an
+independently generated adversarial suite would be the next stronger test.
+
+\section{The Boundary}
+
+There is causal support, but it has to be said carefully. In causal interchange
+tests, selected internal operand chunks could be patched from donor examples
+into recipient examples, and the decoded operands and routed calculator answers
+followed the donor. This uses the same broad causal-intervention discipline as
+activation patching and causal mediation work, not a new causal methodology
+invented here~\cite{stolfo2023,zhang2023patching}. It supports the claim that
+those internal chunks are causally involved in the decoded tuple. In the final
+DeepMind causal summary, division with remainder cleared the powered pair-count
+gate. Gcd and lcm had perfect rates in the available pairs, but too few pairs
+to clear the frozen causal gate. So the causal evidence is supportive, not
+fully powered across every final operation.
+
+The cross-model result was a stop sign. The real Qwen operand-localization
+diagnostic reports \texttt{QWEN\_OPERAND\_ROUTE\_FAIL}: across the sampled
+answer-site and input-token positions, ordered and unordered pair recovery
+stayed at 0.000. The current Llama route did not transfer. Internal activation
+routes are not portable the way text parsers are. A parser sees the same string.
+A different model may have a different body, a different geometry, and
+therefore a different arithmetic.
+
+The next steps are concrete: build model-specific operand localizers instead of
+assuming transfer; complete causal interchange tests where source coverage
+allows it; compare any residual-write attempt against boring logit and parser
+baselines; and keep the no-parser replay boundary as a non-negotiable test.
+
+Here is the final claim without ceremony: on the current benchmark slices, a
+frozen Llama model's activations can supply operation and operand arguments for
+an exact calculator under an opaque, no-parser runtime. The result is a boundary
+claim. It leaves native arithmetic repair, general cross-model transfer, and
+behavior-preserving residual JIT compilation unsolved. Inside that boundary, the
+model's hidden state can contain the calculation even when the visible answer
+would be wrong, and the provenance rules are what keep that sentence honest.
+
+\section{What To Take Away}
+
+Models really do build arithmetic-shaped internal structure. It is not the
+arithmetic humans experience with fingers and written columns. It is a geometry
+of directions, rotations, periodic features, and value-like residual states: one
+way for a matrix-only body to represent divisibility, magnitude, chunks, and
+numeric emission.
+
+Reading those structures is easier than turning them into a robust system.
+Probes can look good for the wrong reason; steering can render an answer without
+proving computation; residual writes can change a token while damaging the
+model's state. The useful science came from the controls that survived after
+the attractive first signals were made harder to fool.
+
+There are three routes here, and they should not be graded as one achievement.
+Text-driven tool use parses the prompt and calls the tool. Activation-derived
+tool use proves that the tool arguments came from the model's internal state.
+Residual replacement writes the result back into the model and preserves
+behavior. Rune makes progress on the second route. The third remains open.
+
+If you want to build systems from those traces, do not trust the first clean
+signal. Ask what else it could be measuring. Remove the prompt text. Remove the
+labels. Replay without the forbidden fields. Add the uncomfortable negatives.
+Compare against the plain baseline. Separate what the model represents from what
+you can safely write.
+
+That is how the story gets smaller. It is also how it becomes true.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{rune_matrix_arithmetic_article}
+
+\end{document}
