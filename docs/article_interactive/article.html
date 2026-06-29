@@ -442,6 +442,7 @@
             <p>Modern tool-use systems already know how to route arithmetic to external computation. PAL and Program of Thoughts ask models to emit executable programs. ReAct interleaves reasoning and actions. Toolformer studies models learning API calls. If the product goal is only "get the arithmetic right," a text parser plus Python is hard to beat.</p>
             <p>Rune's question was narrower and stranger: can the tool arguments come from the model's internal state rather than the prompt text? The runtime boundary carries the weight. Calibration data can use labels. Evaluation can use gold answers for scoring. The deployed route cannot receive prompt text, regex spans, harness operands, or a hidden operation flag.</p>
             <p>Rune is not competing with tool use. It asks what a tool-use boundary looks like when the argument source is mechanistic rather than textual.</p>
+            <p>This is also not neurosymbolic AI in the usual sense: there is no symbolic frontend bolted onto the model and no theorem prover. The operands are recovered from the model's own activations, and the only external step is the calculator at the end.</p>
           </div>
         </div>
       </section>

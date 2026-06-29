@@ -22,6 +22,9 @@
 \makeatother
 
 \begin{abstract}
+A frozen Llama model's activations carry enough number structure to recover
+the operation and operands for several arithmetic tasks without ever parsing the
+prompt, and the same probes show exactly where that structure runs out.
 A language model has no fingers, no beads, no scratch paper, and no number
 line. It has matrices. This article asks what kind of arithmetic grows inside
 that body: phase-like geometry rather than written columns, a residual stream
@@ -101,6 +104,18 @@ the unreliable part with exact computation; then the model continues naturally,
 as if it had done the math itself.
 
 It is a seductive pipeline, and it is not what Rune proves.
+
+Three routes are worth separating before the details. Text-driven tool use
+parses the prompt and calls a tool. Activation-derived tool use proves the tool
+arguments came from the model's hidden state. Residual replacement writes a
+result back into the model and lets it continue. Rune is about the middle route;
+it is neither a parser nor a residual rewrite. It is also not neurosymbolic AI
+in the usual sense: there is no symbolic frontend bolted onto the model and no
+theorem prover; the operands are recovered from the model's own activations, and
+the only external step is the calculator at the end. To be clear about scope,
+this is an interpretability result, not a proposal to do production arithmetic
+with a language model; a dedicated calculator remains the right tool for the
+job. The question is whether the activations already contain the calculation.
 
 What survived the experiments was narrower, but more interesting than ordinary
 tool use. In a frozen Llama model, internal activations expose enough structure
